@@ -48,25 +48,25 @@ var defaultTemplateMap = map[string]string{
 	"default":      "validation failed with {{ if eq .Param \"\" }}{{.Tag}}{{ else }}{{.Tag}}={{.Param}}{{ end }}",
 }
 
-func New() (*Validate, error) {
+func New() *Validate {
 	gpValidate := validator.New()
 
 	inclusionValidations := map[string][]string{}
 	if err := gpValidate.RegisterValidation("inclusion", validateInclusion(inclusionValidations)); err != nil {
-		return nil, errors.Wrap(err, "validator register validation inclusion failed")
+		panic(errors.Wrap(err, "register validation inclusion failed"))
 	}
 
 	validate := Validate{gpValidate: gpValidate, inclusionValidations: inclusionValidations}
 
 	if err := validate.RegisterRegexpValidation("zipcode_jp", `^\d{3}-\d{4}$`); err != nil {
-		return nil, errors.Wrap(err, " validate.RegisterRegexpValidation failed")
+		panic(errors.Wrap(err, "register regexp validation zipcode_jp failed"))
 	}
 
 	if err := validate.RegisterRegexpValidation("simple_email", `^[^\s@]+@[^\s@]+$`); err != nil {
-		return nil, errors.Wrap(err, " validate.RegisterRegexpValidation failed")
+		panic(errors.Wrap(err, "register regexp validation simple_email failed"))
 	}
 
-	return &validate, nil
+	return &validate
 }
 
 // RegisterInclusionValidationParam register a param for inclusion validation.

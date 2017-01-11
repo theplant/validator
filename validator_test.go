@@ -7,7 +7,7 @@ import (
 
 	gpvalidator "github.com/go-playground/validator"
 	"github.com/pkg/errors"
-	"github.com/theplant/aigle/validator"
+	"github.com/theplant/validator"
 )
 
 type info struct {
@@ -42,10 +42,7 @@ func TestValidate_DoRulesWithNestedStruct(t *testing.T) {
 		{Field: "Address.City", Tag: "required"},
 	}
 
-	validate, err := validator.New()
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
+	validate := validator.New()
 
 	verrs, err := validate.DoRules(user{}, userRules)
 	if err != nil {
@@ -66,10 +63,7 @@ func TestValidate_DoRulesWithNestedStruct(t *testing.T) {
 }
 
 func TestValidate_DoRulesWithRuleIsNil(t *testing.T) {
-	validate, err := validator.New()
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
+	validate := validator.New()
 
 	verrs, err := validate.DoRules(info{}, nil)
 
@@ -87,12 +81,9 @@ func TestValidate_DoRulesWithInvalidTagAndParamOfRule(t *testing.T) {
 		{Field: "Name", Tag: "unknow tag"},
 	}
 
-	validate, err := validator.New()
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
+	validate := validator.New()
 
-	_, err = validate.DoRules(info{}, newInfoRules)
+	_, err := validate.DoRules(info{}, newInfoRules)
 
 	if err == nil {
 		t.Fatal("should return error")
@@ -104,12 +95,9 @@ func TestValidate_DoRulesWithInvalidFieldOfRule(t *testing.T) {
 		{Field: "filed does not exist", Tag: "required"},
 	}
 
-	validate, err := validator.New()
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
+	validate := validator.New()
 
-	_, err = validate.DoRules(info{}, newInfoRules)
+	_, err := validate.DoRules(info{}, newInfoRules)
 
 	if err == nil {
 		t.Fatal("should return error")
@@ -117,12 +105,9 @@ func TestValidate_DoRulesWithInvalidFieldOfRule(t *testing.T) {
 }
 
 func TestValidate_DoRulesWithDataTypeError(t *testing.T) {
-	validate, err := validator.New()
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
+	validate := validator.New()
 
-	_, err = validate.DoRules("error type", infoRules)
+	_, err := validate.DoRules("error type", infoRules)
 
 	if err == nil {
 		t.Fatal("should return error")
@@ -134,10 +119,7 @@ func TestValidate_DoRulesWithMessageCanBeReturn(t *testing.T) {
 		{Field: "Name", Tag: "required", Message: "I'm a message"},
 	}
 
-	validate, err := validator.New()
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
+	validate := validator.New()
 
 	gotVerrs, err := validate.DoRules(info{}, newInfoRules)
 	if err != nil {
@@ -178,10 +160,7 @@ func TestValidate_RegisterInclusionValidationParam(t *testing.T) {
 		Species: "panda",
 	}
 
-	validate, err := validator.New()
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
+	validate := validator.New()
 
 	if err := validate.RegisterInclusionValidationParam("gender", []string{"U", "M", "F"}); err != nil {
 		t.Fatalf("got unexpected error: %v", err)
@@ -224,10 +203,7 @@ func TestValidate_RegisterInclusionValidationParamWithNotRegister(t *testing.T) 
 		Gender: "U",
 	}
 
-	validate, err := validator.New()
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
+	validate := validator.New()
 
 	verrs, err := validate.DoRules(infoFailed, infoRules)
 	if err != nil {
@@ -248,12 +224,9 @@ func TestValidate_RegisterInclusionValidationParamWithNotRegister(t *testing.T) 
 }
 
 func TestValidate_RegisterInclusionValidationParam_ParamIsEmpty(t *testing.T) {
-	validate, err := validator.New()
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
+	validate := validator.New()
 
-	err = validate.RegisterInclusionValidationParam("", []string{"U", "M", "F"})
+	err := validate.RegisterInclusionValidationParam("", []string{"U", "M", "F"})
 	if errors.Cause(err).Error() != "param can not be empty" {
 		t.Fatal("should return `param can not be empty`")
 	}
@@ -262,10 +235,7 @@ func TestValidate_RegisterInclusionValidationParam_ParamIsEmpty(t *testing.T) {
 func TestVErrorsToMapWithDefaultTemplateMap(t *testing.T) {
 	infoEmpty := info{}
 
-	validate, err := validator.New()
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
+	validate := validator.New()
 
 	verrs, err := validate.DoRules(infoEmpty, infoRules)
 	if err != nil {
@@ -303,10 +273,7 @@ func TestVErrorsToMapWithCustomTemplateMap(t *testing.T) {
 		"zipcode_jp": "invalid zipcode format",
 	}
 
-	validate, err := validator.New()
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
+	validate := validator.New()
 
 	verrs, err := validate.DoRules(infoFailed, infoRules)
 	if err != nil {
@@ -346,10 +313,7 @@ func TestVErrorsToMapWithDefaultFieldOfDefaultTemplate(t *testing.T) {
 		IPv4: "1271",
 	}
 
-	validate, err := validator.New()
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
+	validate := validator.New()
 
 	verrs, err := validate.DoRules(infoFailed, infoRules)
 	if err != nil {
@@ -405,10 +369,7 @@ func TestValidate_RegisterValidation(t *testing.T) {
 		Phone: "123",
 	}
 
-	validate, err := validator.New()
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
+	validate := validator.New()
 
 	validatePhone := func(fl gpvalidator.FieldLevel) bool {
 		phone := fl.Field().String()
@@ -454,10 +415,7 @@ func TestValidate_RegisterRegexpValidation(t *testing.T) {
 		Phone: "----",
 	}
 
-	validate, err := validator.New()
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
+	validate := validator.New()
 
 	if err := validate.RegisterRegexpValidation("phone", `^\d{0,5}-\d{0,5}-\d{0,5}$`); err != nil {
 		t.Fatalf("got unexpected error: %v", err)
@@ -482,10 +440,7 @@ func TestValidate_RegisterRegexpValidation(t *testing.T) {
 }
 
 func TestValidate_IsVar(t *testing.T) {
-	validate, err := validator.New()
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
+	validate := validator.New()
 
 	if !(validate.IsVar(-1, "lt=0") == true) {
 		t.Fatal("should return true")
