@@ -462,3 +462,58 @@ func TestValidate_IsVar(t *testing.T) {
 		t.Fatal("should return true")
 	}
 }
+
+func TestValidate_DoRulesAndToMap(t *testing.T) {
+	type info struct {
+		Name string
+	}
+
+	infoRules := []validator.Rule{
+		{Field: "Name", Tag: "required"},
+	}
+
+	infoEmpty := info{}
+
+	validate := validator.New()
+
+	validate.RegisterTemplateMap(map[string]string{
+		"required": "custom require",
+	})
+
+	gotVerrMap, err := validate.DoRulesAndToMap(infoEmpty, infoRules)
+	if err != nil {
+		t.Fatalf("got unexpected error: %v", err)
+	}
+
+	wantVerrMap := map[string][]string{
+		"Name": {"custom require"},
+	}
+
+	if !reflect.DeepEqual(gotVerrMap, wantVerrMap) {
+		t.Fatalf("got %v, but want %v", gotVerrMap, wantVerrMap)
+	}
+}
+
+func TestValidate_RegisterTemplateMapWithTemplateFailed(t *testing.T) {
+	validate := validator.New()
+
+	err := validate.RegisterTemplateMap(map[string]string{
+		"required": "{{.invalidValue}}",
+	})
+
+	if err == nil {
+		t.Fatal("should return err")
+	}
+}
+
+func TestValidate_RegisterTemplateMapWithTagFailed(t *testing.T) {
+	validate := validator.New()
+
+	err := validate.RegisterTemplateMap(map[string]string{
+		"": "{{template content}}",
+	})
+
+	if err == nil {
+		t.Fatal("should return err")
+	}
+}

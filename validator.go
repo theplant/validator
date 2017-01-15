@@ -14,6 +14,7 @@ import (
 
 type Validate struct {
 	gpValidate           *validator.Validate
+	customTemplateMap    map[string]string
 	inclusionValidations map[string][]string
 }
 
@@ -230,14 +231,14 @@ func getTemplate(tag string, customTemplateMap map[string]string) string {
 	return defaultTemplateMap["default"]
 }
 
-func parseTemplate(tVals templateValues, templateStr string) (string, error) {
+func parseTemplate(tplValues templateValues, templateStr string) (string, error) {
 	tl, err := template.New("validate").Parse(templateStr)
 	if err != nil {
 		return "", errors.Wrap(err, "template parse failed")
 	}
 
 	message := bytes.Buffer{}
-	if err := tl.Execute(&message, tVals); err != nil {
+	if err := tl.Execute(&message, tplValues); err != nil {
 		return "", errors.Wrap(err, "template execute failed")
 	}
 
@@ -268,6 +269,47 @@ func VErrorsToMap(verrs VErrors, templateMap map[string]string) (map[string][]st
 		vMap[verr.Field] = append(vMap[verr.Field], vMessage)
 	}
 	return vMap, nil
+}
+
+func (v *Validate) RegisterTemplateMap(templateMap map[string]string) error {
+	if err := checkTemplateMap(templateMap); err != nil {
+		return err
+	}
+
+	v.customTemplateMap = templateMap
+
+	return nil
+}
+
+func checkTemplateMap(templateMap map[string]string) error {
+	tplValues := templateValues{
+		Param: "check param",
+		Tag:   "check tag",
+	}
+
+	for tag, tpl := range templateMap {
+		if tag == "" {
+			return errors.New("tag of the templateMap can not be empty")
+		}
+
+		_, err := parseTemplate(tplValues, tpl)
+		if err != nil {
+			return errors.Wrap(err, "tpl of the templateMap invalid")
+		}
+	}
+
+	return nil
+}
+
+// Same as DoRules, run DoRules and VErrorsToMap with custom template.
+// You can use RegisterTemplateMap func to register custom template.
+func (v *Validate) DoRulesAndToMap(data interface{}, rules []Rule) (map[string][]string, error) {
+	verrs, err := v.DoRules(data, rules)
+	if err != nil {
+		return nil, err
+	}
+
+	return VErrorsToMap(verrs, v.customTemplateMap)
 }
 
 // RegisterValidation adds a validation with the given tag.
