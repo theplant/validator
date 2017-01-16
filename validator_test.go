@@ -520,7 +520,7 @@ func TestValidate_RegisterTemplateMapWithTagFailed(t *testing.T) {
 
 func TestValidate_DoRulesAndToMapWithTagName(t *testing.T) {
 	type address struct {
-		City    string `json:"json_city"`
+		City    string `json:"json_city,omitempty"`
 		Address string
 	}
 

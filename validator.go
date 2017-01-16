@@ -110,8 +110,7 @@ func fieldByNameNested(val reflect.Value, name string, tagName string) (reflect.
 			val = val.Elem()
 		}
 
-		field, _ := val.Type().FieldByName(n)
-		tag := field.Tag.Get(tagName)
+		tag := getTagValue(val, n, tagName)
 		if tag == "" {
 			names = append(names, n)
 		} else {
@@ -122,6 +121,30 @@ func fieldByNameNested(val reflect.Value, name string, tagName string) (reflect.
 	}
 
 	return val, strings.Join(names, ".")
+}
+
+// If get failed, then return "".
+// If tag value == "-", then return "".
+func getTagValue(val reflect.Value, name, tagName string) string {
+	field, ok := val.Type().FieldByName(name)
+	if !ok {
+		return ""
+	}
+
+	flatTag := field.Tag.Get(tagName)
+	if flatTag == "-" {
+		return ""
+	}
+
+	tag := ""
+	tags := strings.Split(flatTag, ",")
+	if len(tags) > 0 {
+		tag = tags[0]
+	} else {
+		tag = flatTag
+	}
+
+	return tag
 }
 
 func (ves VErrors) Error() string {
