@@ -92,22 +92,36 @@ func (v *Validate) RegisterInclusionValidationParam(param string, validList []st
 }
 
 // val should be a struct value.
+// If found the tagName of val, then use the tag value replace name.
+//
 // It return invalid value if has some errors.
 // It return nil pointer value if try to get value from nil.
-func fieldByNameNested(val reflect.Value, name string) reflect.Value {
+func fieldByNameNested(val reflect.Value, name string, tagName string) (reflect.Value, string) {
+	names := []string{}
+
 	for _, n := range strings.Split(name, ".") {
 		if val.Kind() == reflect.Invalid {
-			return val
+			return val, ""
 		}
 		if val.Kind() == reflect.Ptr {
 			if val.IsNil() {
-				return val
+				return val, ""
 			}
 			val = val.Elem()
 		}
+
+		field, _ := val.Type().FieldByName(n)
+		tag := field.Tag.Get(tagName)
+		if tag == "" {
+			names = append(names, n)
+		} else {
+			names = append(names, tag)
+		}
+
 		val = val.FieldByName(n)
 	}
-	return val
+
+	return val, strings.Join(names, ".")
 }
 
 func (ves VErrors) Error() string {
@@ -148,6 +162,10 @@ func (ves VErrors) Error() string {
 // * zipcode_jp
 // * simple_email
 func (v *Validate) DoRules(data interface{}, rules []Rule) (verrs VErrors, err error) {
+	return v.DoRulesWithTagName(data, rules, "")
+}
+
+func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName string) (verrs VErrors, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			verrs = nil
@@ -166,8 +184,9 @@ func (v *Validate) DoRules(data interface{}, rules []Rule) (verrs VErrors, err e
 	verrs = VErrors{}
 
 	for _, rule := range rules {
-		fieldVal := fieldByNameNested(val, rule.Field).Interface()
-		if (fieldVal == reflect.Invalid) || (val.Kind() == reflect.Ptr && val.IsNil()) {
+		field, fieldName := fieldByNameNested(val, rule.Field, tagName)
+		fieldVal := field.Interface()
+		if (field.Kind() == reflect.Invalid) || (val.Kind() == reflect.Ptr && val.IsNil()) {
 			return nil, errors.New(fmt.Sprintf("get value from %v field failed", rule.Field))
 		}
 
@@ -180,7 +199,7 @@ func (v *Validate) DoRules(data interface{}, rules []Rule) (verrs VErrors, err e
 		if validationErrors, ok := err.(validator.ValidationErrors); ok {
 			for _, validationErr := range validationErrors {
 				verrs = append(verrs, VError{
-					Field:   rule.Field,
+					Field:   fieldName,
 					Tag:     validationErr.Tag(),
 					Param:   validationErr.Param(),
 					Message: rule.Message,
@@ -305,6 +324,15 @@ func checkTemplateMap(templateMap map[string]string) error {
 // You can use RegisterTemplateMap func to register custom template.
 func (v *Validate) DoRulesAndToMap(data interface{}, rules []Rule) (map[string][]string, error) {
 	verrs, err := v.DoRules(data, rules)
+	if err != nil {
+		return nil, err
+	}
+
+	return VErrorsToMap(verrs, v.customTemplateMap)
+}
+
+func (v *Validate) DoRulesAndToMapWithTagName(data interface{}, rules []Rule, tagName string) (map[string][]string, error) {
+	verrs, err := v.DoRulesWithTagName(data, rules, tagName)
 	if err != nil {
 		return nil, err
 	}

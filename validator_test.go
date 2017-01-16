@@ -26,7 +26,7 @@ var infoRules = []validator.Rule{
 	{Field: "ZipCode", Tag: "zipcode_jp"},
 }
 
-func TestValidate_DoRulesWithNestedStruct(t *testing.T) {
+func TestValidate_DoRulesWithNested(t *testing.T) {
 	type address struct {
 		City    string
 		Address string
@@ -515,5 +515,37 @@ func TestValidate_RegisterTemplateMapWithTagFailed(t *testing.T) {
 
 	if err == nil {
 		t.Fatal("should return err")
+	}
+}
+
+func TestValidate_DoRulesAndToMapWithTagName(t *testing.T) {
+	type address struct {
+		City    string `json:"json_city"`
+		Address string
+	}
+
+	type user struct {
+		Name    string
+		Age     int
+		Address address `json:"address"`
+	}
+
+	userRules := []validator.Rule{
+		{Field: "Address.City", Tag: "required"},
+	}
+
+	validate := validator.New()
+
+	gotVerrMap, err := validate.DoRulesAndToMapWithTagName(user{}, userRules, "json")
+	if err != nil {
+		t.Fatalf("got unexpected error: %v", err)
+	}
+
+	wantVerrMap := map[string][]string{
+		"address.json_city": {"can not be blank"},
+	}
+
+	if !reflect.DeepEqual(gotVerrMap, wantVerrMap) {
+		t.Fatalf("got %v, want %v", gotVerrMap, wantVerrMap)
 	}
 }
