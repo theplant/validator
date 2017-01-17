@@ -14,7 +14,7 @@ import (
 
 type Validate struct {
 	gpValidate           *validator.Validate
-	customTemplateMap    map[string]string
+	customTemplateMap    TemplateMap
 	inclusionValidations map[string][]string
 }
 
@@ -28,16 +28,20 @@ type Rule struct {
 	Message string
 }
 
-type VError struct {
+type Error struct {
 	Field   string
 	Tag     string
 	Param   string
 	Message string
 }
 
-type VErrors []VError
+type Errors []Error
 
-var defaultTemplateMap = map[string]string{
+type MapError map[string][]string
+
+type TemplateMap map[string]string
+
+var defaultTemplateMap = TemplateMap{
 	"required":     "can not be blank",
 	"lte":          "is too long, maximum length is {{.Param}}",
 	"gte":          "is too short, minimum length is {{.Param}}",
@@ -147,7 +151,7 @@ func getTagValue(val reflect.Value, name, tagName string) string {
 	return tag
 }
 
-func (ves VErrors) Error() string {
+func (ves Errors) Error() string {
 	if len(ves) == 0 {
 		return ""
 	}
@@ -172,6 +176,30 @@ func (ves VErrors) Error() string {
 	return "validation failed: " + strings.Join(errStrs, "; ")
 }
 
+// fmt []string{"1", "2", "3"} to `["1", "2", "3"]`
+func fmtStringArray(strs []string) string {
+	if len(strs) == 0 {
+		return ""
+	}
+
+	return `["` + strings.Join(strs, `", "`) + `"]`
+}
+
+func (vem MapError) Error() string {
+	errStr := ""
+
+	for field, messages := range vem {
+		errStr = errStr + field + ":" + fmtStringArray(messages) + " "
+	}
+
+	if errStr != "" {
+		// Remove last " " char.
+		errStr = errStr[:len(errStr)-1]
+	}
+
+	return errStr
+}
+
 // data should be a struct or a pointer to struct.
 //
 // if return (nil, nil), it mean no validation error.
@@ -184,11 +212,11 @@ func (ves VErrors) Error() string {
 // Some custom tags:
 // * zipcode_jp
 // * simple_email
-func (v *Validate) DoRules(data interface{}, rules []Rule) (verrs VErrors, err error) {
+func (v *Validate) DoRules(data interface{}, rules []Rule) (Errors, error) {
 	return v.DoRulesWithTagName(data, rules, "")
 }
 
-func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName string) (verrs VErrors, err error) {
+func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName string) (verrs Errors, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			verrs = nil
@@ -204,7 +232,7 @@ func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName st
 		return nil, errors.New("data should be a struct or a pointer to struct")
 	}
 
-	verrs = VErrors{}
+	verrs = Errors{}
 
 	for _, rule := range rules {
 		field, fieldName := fieldByNameNested(val, rule.Field, tagName)
@@ -221,7 +249,7 @@ func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName st
 
 		if validationErrors, ok := err.(validator.ValidationErrors); ok {
 			for _, validationErr := range validationErrors {
-				verrs = append(verrs, VError{
+				verrs = append(verrs, Error{
 					Field:   fieldName,
 					Tag:     validationErr.Tag(),
 					Param:   validationErr.Param(),
@@ -261,7 +289,7 @@ type templateValues struct {
 	Tag   string
 }
 
-func getTemplate(tag string, customTemplateMap map[string]string) string {
+func getTemplate(tag string, customTemplateMap TemplateMap) string {
 	if message := customTemplateMap[tag]; message != "" {
 		return message
 	}
@@ -301,19 +329,19 @@ func parseTemplate(tplValues templateValues, templateStr string) (string, error)
 // so you don't worry about missing some tags of the templateMap.
 //
 // If parse template failed, it will return error.
-func VErrorsToMap(verrs VErrors, templateMap map[string]string) (map[string][]string, error) {
-	vMap := map[string][]string{}
+func VErrorsToMap(verrs Errors, templateMap TemplateMap) (MapError, error) {
+	verrMap := MapError{}
 	for _, verr := range verrs {
 		vMessage, err := parseTemplate(templateValues{Param: verr.Param, Tag: verr.Tag}, getTemplate(verr.Tag, templateMap))
 		if err != nil {
 			return nil, errors.Wrap(err, "parseTemplate failed")
 		}
-		vMap[verr.Field] = append(vMap[verr.Field], vMessage)
+		verrMap[verr.Field] = append(verrMap[verr.Field], vMessage)
 	}
-	return vMap, nil
+	return verrMap, nil
 }
 
-func (v *Validate) RegisterTemplateMap(templateMap map[string]string) error {
+func (v *Validate) RegisterTemplateMap(templateMap TemplateMap) error {
 	if err := checkTemplateMap(templateMap); err != nil {
 		return err
 	}
@@ -323,7 +351,7 @@ func (v *Validate) RegisterTemplateMap(templateMap map[string]string) error {
 	return nil
 }
 
-func checkTemplateMap(templateMap map[string]string) error {
+func checkTemplateMap(templateMap TemplateMap) error {
 	tplValues := templateValues{
 		Param: "check param",
 		Tag:   "check tag",
@@ -345,7 +373,7 @@ func checkTemplateMap(templateMap map[string]string) error {
 
 // Same as DoRules, run DoRules and VErrorsToMap with custom template.
 // You can use RegisterTemplateMap func to register custom template.
-func (v *Validate) DoRulesAndToMap(data interface{}, rules []Rule) (map[string][]string, error) {
+func (v *Validate) DoRulesAndToMapError(data interface{}, rules []Rule) (MapError, error) {
 	verrs, err := v.DoRules(data, rules)
 	if err != nil {
 		return nil, err
@@ -354,7 +382,7 @@ func (v *Validate) DoRulesAndToMap(data interface{}, rules []Rule) (map[string][
 	return VErrorsToMap(verrs, v.customTemplateMap)
 }
 
-func (v *Validate) DoRulesAndToMapWithTagName(data interface{}, rules []Rule, tagName string) (map[string][]string, error) {
+func (v *Validate) DoRulesAndToMapErrorWithTagName(data interface{}, rules []Rule, tagName string) (MapError, error) {
 	verrs, err := v.DoRulesWithTagName(data, rules, tagName)
 	if err != nil {
 		return nil, err

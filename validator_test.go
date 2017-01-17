@@ -53,7 +53,7 @@ func TestValidate_DoRulesWithNested(t *testing.T) {
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
-	wantValidationErrs := map[string][]string{
+	wantValidationErrs := validator.MapError{
 		"Address.City": {"can not be blank"},
 	}
 
@@ -72,7 +72,7 @@ func TestValidate_DoRulesWithRuleIsNil(t *testing.T) {
 	}
 
 	if verrs != nil {
-		t.Fatalf("should not return VErrors: %v", verrs)
+		t.Fatalf("should not return Errors: %v", verrs)
 	}
 }
 
@@ -127,10 +127,10 @@ func TestValidate_DoRulesWithMessageCanBeReturn(t *testing.T) {
 	}
 
 	if len(gotVerrs) != 1 {
-		t.Fatal("should return one VError")
+		t.Fatal("should return one Error")
 	}
 
-	wantVerrs := validator.VError{
+	wantVerrs := validator.Error{
 		Field:   "Name",
 		Tag:     "required",
 		Message: "I'm a message",
@@ -181,7 +181,7 @@ func TestValidate_RegisterInclusionValidationParam(t *testing.T) {
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
-	wantValidationErrs := map[string][]string{
+	wantValidationErrs := validator.MapError{
 		"Species": {"invalid species value"},
 	}
 
@@ -214,7 +214,7 @@ func TestValidate_RegisterInclusionValidationParamWithNotRegister(t *testing.T) 
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
-	wantValidationErrs := map[string][]string{
+	wantValidationErrs := validator.MapError{
 		"Gender": {"invalid gender value"},
 	}
 
@@ -246,7 +246,7 @@ func TestVErrorsToMapWithDefaultTemplateMap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
-	wantValidationErrs := map[string][]string{
+	wantValidationErrs := validator.MapError{
 		"Name":     {"can not be blank"},
 		"Password": {"is too short, minimum length is 8"},
 		"Age":      {"is too small, minimum is 20"},
@@ -267,7 +267,7 @@ func TestVErrorsToMapWithCustomTemplateMap(t *testing.T) {
 		Address:  "1234567890 1234567890 1234567890 1234567890 1234567890",
 		ZipCode:  "1234-123",
 	}
-	templateMap := map[string]string{
+	templateMap := validator.TemplateMap{
 		"lte":        "maximum length is {{.Param}}",
 		"gte":        "minimum length is {{.Param}}",
 		"zipcode_jp": "invalid zipcode format",
@@ -284,7 +284,7 @@ func TestVErrorsToMapWithCustomTemplateMap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
-	wantValidationErrs := map[string][]string{
+	wantValidationErrs := validator.MapError{
 		"Name":     {"maximum length is 20"},
 		"Password": {"minimum length is 8"},
 		"Age":      {"is too large, maximum is 100"},
@@ -324,7 +324,7 @@ func TestVErrorsToMapWithDefaultFieldOfDefaultTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
-	wantValidationErrs := map[string][]string{
+	wantValidationErrs := validator.MapError{
 		"Name": {"validation failed with lt=20"},
 		"IPv4": {"validation failed with ipv4"},
 	}
@@ -335,11 +335,11 @@ func TestVErrorsToMapWithDefaultFieldOfDefaultTemplate(t *testing.T) {
 }
 
 func TestVErrorsToMapWithParseTemplateError(t *testing.T) {
-	verrs := validator.VErrors{
+	verrs := validator.Errors{
 		{Field: "Name", Tag: "required"},
 	}
 
-	templateMap := map[string]string{
+	templateMap := validator.TemplateMap{
 		"required": "maximum length is {{.Param",
 	}
 	_, err := validator.VErrorsToMap(verrs, templateMap)
@@ -347,7 +347,7 @@ func TestVErrorsToMapWithParseTemplateError(t *testing.T) {
 		t.Fatal("should return err")
 	}
 
-	templateMap = map[string]string{
+	templateMap = validator.TemplateMap{
 		"required": "maximum length is {{.otherVariable}}",
 	}
 	_, err = validator.VErrorsToMap(verrs, templateMap)
@@ -393,7 +393,7 @@ func TestValidate_RegisterValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
-	wantValidationErrs := map[string][]string{
+	wantValidationErrs := validator.MapError{
 		"Phone": {"validation failed with phone"},
 	}
 
@@ -430,7 +430,7 @@ func TestValidate_RegisterRegexpValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
-	wantValidationErrs := map[string][]string{
+	wantValidationErrs := validator.MapError{
 		"Phone": {"validation failed with phone"},
 	}
 
@@ -476,16 +476,16 @@ func TestValidate_DoRulesAndToMap(t *testing.T) {
 
 	validate := validator.New()
 
-	validate.RegisterTemplateMap(map[string]string{
+	validate.RegisterTemplateMap(validator.TemplateMap{
 		"required": "custom require",
 	})
 
-	gotVerrMap, err := validate.DoRulesAndToMap(infoEmpty, infoRules)
+	gotVerrMap, err := validate.DoRulesAndToMapError(infoEmpty, infoRules)
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
 
-	wantVerrMap := map[string][]string{
+	wantVerrMap := validator.MapError{
 		"Name": {"custom require"},
 	}
 
@@ -497,7 +497,7 @@ func TestValidate_DoRulesAndToMap(t *testing.T) {
 func TestValidate_RegisterTemplateMapWithTemplateFailed(t *testing.T) {
 	validate := validator.New()
 
-	err := validate.RegisterTemplateMap(map[string]string{
+	err := validate.RegisterTemplateMap(validator.TemplateMap{
 		"required": "{{.invalidValue}}",
 	})
 
@@ -509,7 +509,7 @@ func TestValidate_RegisterTemplateMapWithTemplateFailed(t *testing.T) {
 func TestValidate_RegisterTemplateMapWithTagFailed(t *testing.T) {
 	validate := validator.New()
 
-	err := validate.RegisterTemplateMap(map[string]string{
+	err := validate.RegisterTemplateMap(validator.TemplateMap{
 		"": "{{template content}}",
 	})
 
@@ -536,16 +536,37 @@ func TestValidate_DoRulesAndToMapWithTagName(t *testing.T) {
 
 	validate := validator.New()
 
-	gotVerrMap, err := validate.DoRulesAndToMapWithTagName(user{}, userRules, "json")
+	gotVerrMap, err := validate.DoRulesAndToMapErrorWithTagName(user{}, userRules, "json")
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
 
-	wantVerrMap := map[string][]string{
+	wantVerrMap := validator.MapError{
 		"address.json_city": {"can not be blank"},
 	}
 
 	if !reflect.DeepEqual(gotVerrMap, wantVerrMap) {
 		t.Fatalf("got %v, want %v", gotVerrMap, wantVerrMap)
+	}
+}
+
+func TestVErrorMap_Error(t *testing.T) {
+	var infoRules = []validator.Rule{
+		{Field: "Name", Tag: "required"},
+		{Field: "Password", Tag: "required"},
+	}
+
+	validate := validator.New()
+
+	gotVMapErr, err := validate.DoRulesAndToMapError(info{}, infoRules)
+	if err != nil {
+		t.Fatalf("got unexpected error: %v", err)
+	}
+
+	wantMapErrString1 := `Password:["can not be blank"] Name:["can not be blank"]`
+	wantMapErrString2 := `Name:["can not be blank"] Password:["can not be blank"]`
+
+	if !(gotVMapErr.Error() == wantMapErrString1 || gotVMapErr.Error() == wantMapErrString2) {
+		t.Fatalf("snhould return `%v` or `%v`", wantMapErrString1, wantMapErrString2)
 	}
 }
