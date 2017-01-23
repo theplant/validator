@@ -563,10 +563,42 @@ func TestVErrorMap_Error(t *testing.T) {
 		t.Fatalf("got unexpected error: %v", err)
 	}
 
+	gotVMapErrString := gotVMapErr.Error()
 	wantMapErrString1 := `Password:["can not be blank"] Name:["can not be blank"]`
 	wantMapErrString2 := `Name:["can not be blank"] Password:["can not be blank"]`
 
-	if !(gotVMapErr.Error() == wantMapErrString1 || gotVMapErr.Error() == wantMapErrString2) {
-		t.Fatalf("snhould return `%v` or `%v`", wantMapErrString1, wantMapErrString2)
+	if !(gotVMapErrString == wantMapErrString1 || gotVMapErrString == wantMapErrString2) {
+		t.Fatalf("snhould return `%v` or `%v`, \nbut return `%v`", wantMapErrString1, wantMapErrString2, gotVMapErr)
+	}
+}
+
+func TestValidate_DoRulesWithEqfieldTag(t *testing.T) {
+	type info struct {
+		Password        string
+		ConfirmPassword string
+		OtherValidation string
+	}
+
+	var infoRules = []validator.Rule{
+		{Field: "Password", Tag: "required,lte=2"},
+		{Field: "ConfirmPassword", Tag: "required,lte=2,eqfield=Password"},
+		{Field: "OtherValidation", Tag: "required"},
+	}
+
+	validate := validator.New()
+
+	gotVerrMap, err := validate.DoRulesAndToMapError(info{Password: "1234", ConfirmPassword: "1111"}, infoRules)
+	if err != nil {
+		t.Fatalf("got unexpected error: %v", err)
+	}
+
+	wantVerrMap := validator.MapError{
+		"Password":        {"is too long, maximum length is 2"},
+		"ConfirmPassword": {"validation failed with eqfield", "is too long, maximum length is 2"},
+		"OtherValidation": {"can not be blank"},
+	}
+
+	if !reflect.DeepEqual(gotVerrMap, wantVerrMap) {
+		t.Fatalf("got %v, want %v", gotVerrMap, wantVerrMap)
 	}
 }

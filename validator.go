@@ -127,30 +127,6 @@ func fieldByNameNested(val reflect.Value, name string, tagName string) (reflect.
 	return val, strings.Join(names, ".")
 }
 
-// If get failed, then return "".
-// If tag value == "-", then return "".
-func getTagValue(val reflect.Value, name, tagName string) string {
-	field, ok := val.Type().FieldByName(name)
-	if !ok {
-		return ""
-	}
-
-	flatTag := field.Tag.Get(tagName)
-	if flatTag == "-" {
-		return ""
-	}
-
-	tag := ""
-	tags := strings.Split(flatTag, ",")
-	if len(tags) > 0 {
-		tag = tags[0]
-	} else {
-		tag = flatTag
-	}
-
-	return tag
-}
-
 func (ves Errors) Error() string {
 	if len(ves) == 0 {
 		return ""
@@ -236,31 +212,59 @@ func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName st
 
 	for _, rule := range rules {
 		field, fieldName := fieldByNameNested(val, rule.Field, tagName)
-		fieldVal := field.Interface()
-		if (field.Kind() == reflect.Invalid) || (val.Kind() == reflect.Ptr && val.IsNil()) {
+		if (field.Kind() == reflect.Invalid) || (field.Kind() == reflect.Ptr && field.IsNil()) {
 			return nil, errors.New(fmt.Sprintf("get value from %v field failed", rule.Field))
 		}
+		fieldVal := field.Interface()
 
-		err := v.gpValidate.Var(fieldVal, rule.Tag)
+		varTags := []string{}
+		for _, tag := range splitTag(rule.Tag) {
+			switch getTagBefore(tag) {
+			case "eqfield":
+				otherField, _ := fieldByNameNested(val, getTagAfter(tag), "")
+				if (otherField.Kind() == reflect.Invalid) || (otherField.Kind() == reflect.Ptr && otherField.IsNil()) {
+					return nil, errors.New(fmt.Sprintf("get value from %v field failed", rule.Field))
+				}
+				otherFieldVal := otherField.Interface()
 
-		if _, ok := err.(*validator.InvalidValidationError); ok {
-			return nil, err
+				verrs, err = appendErrors(v.gpValidate.VarWithValue(fieldVal, otherFieldVal, "eqfield"), verrs, fieldName, rule.Message)
+				if err != nil {
+					return nil, err
+				}
+			default:
+				varTags = append(varTags, tag)
+			}
 		}
 
-		if validationErrors, ok := err.(validator.ValidationErrors); ok {
-			for _, validationErr := range validationErrors {
-				verrs = append(verrs, Error{
-					Field:   fieldName,
-					Tag:     validationErr.Tag(),
-					Param:   validationErr.Param(),
-					Message: rule.Message,
-				})
+		if len(varTags) > 0 {
+			verrs, err = appendErrors(v.gpValidate.Var(fieldVal, strings.Join(varTags, tagSeparator)), verrs, fieldName, rule.Message)
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
 
 	if len(verrs) == 0 {
 		return nil, nil
+	}
+
+	return verrs, nil
+}
+
+func appendErrors(err error, verrs Errors, fieldName string, message string) (Errors, error) {
+	if _, ok := err.(*validator.InvalidValidationError); ok {
+		return nil, err
+	}
+
+	if validationErrors, ok := err.(validator.ValidationErrors); ok {
+		for _, validationErr := range validationErrors {
+			verrs = append(verrs, Error{
+				Field:   fieldName,
+				Tag:     validationErr.Tag(),
+				Param:   validationErr.Param(),
+				Message: message,
+			})
+		}
 	}
 
 	return verrs, nil
