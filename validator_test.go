@@ -190,6 +190,63 @@ func TestValidate_RegisterInclusionValidationParam(t *testing.T) {
 	}
 }
 
+func TestValidate_RegisterInclusionValidationParamWithIntSliceType(t *testing.T) {
+	type info struct {
+		Number int
+	}
+
+	infoRules := []validator.Rule{
+		{Field: "Number", Tag: "inclusion=number"},
+	}
+
+	validate := validator.New()
+
+	if err := validate.RegisterInclusionValidationParam("number", []int{1, 2, 3}); err != nil {
+		t.Fatalf("got unexpected error: %v", err)
+	}
+
+	// validate failed
+
+	infoFailed := info{
+		Number: 100,
+	}
+
+	verrs, err := validate.DoRules(infoFailed, infoRules)
+	if err != nil {
+		t.Fatalf("got unexpected error: %v", err)
+	}
+
+	gotValidationErrs, err := validator.VErrorsToMap(verrs, nil)
+	if err != nil {
+		t.Fatalf("got unexpected error: %v", err)
+	}
+	wantValidationErrs := validator.MapError{
+		"Number": {"invalid number value"},
+	}
+
+	if !reflect.DeepEqual(wantValidationErrs, gotValidationErrs) {
+		t.Fatalf("got %v, want %v", gotValidationErrs, wantValidationErrs)
+	}
+
+	// validate success
+
+	infoSuccess := info{
+		Number: 3,
+	}
+
+	verrs, err = validate.DoRules(infoSuccess, infoRules)
+	if err != nil {
+		t.Fatalf("got unexpected error: %v", err)
+	}
+	if err != nil {
+		t.Fatalf("got unexpected error: %v", err)
+	}
+
+	if len(verrs) != 0 {
+		t.Fatalf("shouldn't return any validation error: %v", verrs)
+	}
+}
+
 func TestValidate_RegisterInclusionValidationParamWithNotRegister(t *testing.T) {
 	type info struct {
 		Gender string
@@ -229,6 +286,15 @@ func TestValidate_RegisterInclusionValidationParam_ParamIsEmpty(t *testing.T) {
 	err := validate.RegisterInclusionValidationParam("", []string{"U", "M", "F"})
 	if errors.Cause(err).Error() != "param can not be empty" {
 		t.Fatal("should return `param can not be empty`")
+	}
+}
+
+func TestValidate_RegisterInclusionValidationParamWithValidSliceTypeInvalid(t *testing.T) {
+	validate := validator.New()
+
+	err := validate.RegisterInclusionValidationParam("gender", "gender")
+	if errors.Cause(err).Error() != "validSlice must be slice type" {
+		t.Fatal("should return `validSlice must be slice type`")
 	}
 }
 

@@ -15,7 +15,7 @@ import (
 type Validate struct {
 	GPValidate           *validator.Validate
 	customTemplateMap    TemplateMap
-	inclusionValidations map[string][]string
+	inclusionValidations map[string][]interface{}
 }
 
 type Rule struct {
@@ -56,7 +56,7 @@ var defaultTemplateMap = TemplateMap{
 func New() *Validate {
 	gpValidate := validator.New()
 
-	inclusionValidations := map[string][]string{}
+	inclusionValidations := map[string][]interface{}{}
 	if err := gpValidate.RegisterValidation("inclusion", validateInclusion(inclusionValidations)); err != nil {
 		panic(errors.Wrap(err, "register validation inclusion failed"))
 	}
@@ -75,7 +75,8 @@ func New() *Validate {
 }
 
 // RegisterInclusionValidationParam register a param for inclusion validation.
-// validList are all valid values for param of the inclusion validation.
+// validSlice are all valid values for param of the inclusion validation,
+// and it must be slice type.
 //
 // For example, if you register a "gender" param,
 // then you can use `validate:"inclusion=gender"` validation tag for the struct.
@@ -85,12 +86,23 @@ func New() *Validate {
 //
 // If you register the same param multiple times, the front will be covered.
 // If param is empty, it will return error.
-func (v *Validate) RegisterInclusionValidationParam(param string, validList []string) error {
+func (v *Validate) RegisterInclusionValidationParam(param string, validSlice interface{}) error {
 	if param == "" {
 		return errors.New("param can not be empty")
 	}
 
-	v.inclusionValidations[param] = validList
+	validSliceVal := reflect.ValueOf(validSlice)
+
+	if validSliceVal.Kind() != reflect.Slice {
+		return errors.New("validSlice must be slice type")
+	}
+
+	validSliceIfaces := []interface{}{}
+	for i := 0; i < validSliceVal.Len(); i++ {
+		validSliceIfaces = append(validSliceIfaces, validSliceVal.Index(i).Interface())
+	}
+
+	v.inclusionValidations[param] = validSliceIfaces
 
 	return nil
 }
@@ -429,13 +441,13 @@ func generateRegexpValidation(regexpString string) func(fl validator.FieldLevel)
 	}
 }
 
-func validateInclusion(inclusionValidations map[string][]string) validator.Func {
+func validateInclusion(inclusionValidations map[string][]interface{}) validator.Func {
 	return func(fl validator.FieldLevel) bool {
-		return isInStringArray(fl.Field().String(), inclusionValidations[fl.Param()])
+		return isInSlice(fl.Field().Interface(), inclusionValidations[fl.Param()])
 	}
 }
 
-func isInStringArray(check string, array []string) bool {
+func isInSlice(check interface{}, array []interface{}) bool {
 	for _, v := range array {
 		if v == check {
 			return true
