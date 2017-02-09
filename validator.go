@@ -13,7 +13,7 @@ import (
 )
 
 type Validate struct {
-	gpValidate           *validator.Validate
+	GPValidate           *validator.Validate
 	customTemplateMap    TemplateMap
 	inclusionValidations map[string][]string
 }
@@ -61,7 +61,7 @@ func New() *Validate {
 		panic(errors.Wrap(err, "register validation inclusion failed"))
 	}
 
-	validate := Validate{gpValidate: gpValidate, inclusionValidations: inclusionValidations}
+	validate := Validate{GPValidate: gpValidate, inclusionValidations: inclusionValidations}
 
 	if err := validate.RegisterRegexpValidation("zipcode_jp", `^\d{3}-\d{4}$`); err != nil {
 		panic(errors.Wrap(err, "register regexp validation zipcode_jp failed"))
@@ -227,7 +227,7 @@ func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName st
 				}
 				otherFieldVal := otherField.Interface()
 
-				verrs, err = appendErrors(v.gpValidate.VarWithValue(fieldVal, otherFieldVal, "eqfield"), verrs, fieldName, rule.Message)
+				verrs, err = appendErrors(v.GPValidate.VarWithValue(fieldVal, otherFieldVal, "eqfield"), verrs, fieldName, rule.Message)
 				if err != nil {
 					return nil, err
 				}
@@ -237,7 +237,7 @@ func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName st
 		}
 
 		if len(varTags) > 0 {
-			verrs, err = appendErrors(v.gpValidate.Var(fieldVal, strings.Join(varTags, tagSeparator)), verrs, fieldName, rule.Message)
+			verrs, err = appendErrors(v.GPValidate.Var(fieldVal, strings.Join(varTags, tagSeparator)), verrs, fieldName, rule.Message)
 			if err != nil {
 				return nil, err
 			}
@@ -275,7 +275,7 @@ func appendErrors(err error, verrs Errors, fieldName string, message string) (Er
 //
 // If has some invalid input, it will return false.
 func (v *Validate) IsVar(field interface{}, tag string) bool {
-	err := v.gpValidate.Var(field, tag)
+	err := v.GPValidate.Var(field, tag)
 
 	if _, ok := err.(*validator.InvalidValidationError); ok {
 		return false
@@ -405,7 +405,7 @@ func (v *Validate) DoRulesAndToMapErrorWithTagName(data interface{}, rules []Rul
 // this is not good, because we hope only import this package.
 // To find a better way.
 func (v *Validate) RegisterValidation(tag string, fn func(validator.FieldLevel) bool) error {
-	return v.gpValidate.RegisterValidation(tag, fn)
+	return v.GPValidate.RegisterValidation(tag, fn)
 }
 
 // RegisterRegexpValidation adds a regexp validation with the given tag and regexpString
@@ -414,7 +414,7 @@ func (v *Validate) RegisterValidation(tag string, fn func(validator.FieldLevel) 
 // - if the key already exists, the previous validation function will be replaced.
 // - this method is not thread-safe it is intended that these all be registered prior to any validation
 func (v *Validate) RegisterRegexpValidation(tag string, regexpString string) error {
-	return v.gpValidate.RegisterValidation(tag, generateRegexpValidation(regexpString))
+	return v.GPValidate.RegisterValidation(tag, generateRegexpValidation(regexpString))
 }
 
 func generateRegexpValidation(regexpString string) func(fl validator.FieldLevel) bool {
