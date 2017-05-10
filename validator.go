@@ -263,6 +263,53 @@ func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName st
 	return verrs, nil
 }
 
+func setMapErrorToStruct(merr MapError, toStruct interface{}) {
+	v := reflect.ValueOf(toStruct).Elem()
+	if v.IsNil() {
+		v.Set(reflect.New(v.Type().Elem()))
+	}
+	vv := v.Elem()
+
+	for field, messages := range merr {
+		vv.FieldByName(field).Set(reflect.ValueOf(messages))
+	}
+}
+
+func setToStructToNil(toStruct interface{}) {
+	v := reflect.ValueOf(toStruct)
+	v.Elem().Set(reflect.Zero(v.Elem().Type()))
+}
+
+func checkToStruct(toStruct interface{}) {
+	v := reflect.ValueOf(toStruct)
+	if v.Kind() != reflect.Ptr {
+		panic(errors.New("toStruct must be pointer to pointer to struct"))
+	}
+	vv := v.Elem()
+	if vv.Kind() != reflect.Ptr {
+		panic(errors.New("toStruct must be pointer to pointer to struct"))
+	}
+}
+
+// toStruct must be pointer to pointer to struct,
+// and fields must contains all rule.Field and type must be []string.
+// If no validation errors, then set toStruct to nil.
+func (v *Validate) DoRulesToStruct(data interface{}, rules []Rule, toStruct interface{}) {
+	checkToStruct(toStruct)
+
+	merr, err := v.DoRulesAndToMapError(data, rules)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(merr) == 0 {
+		setToStructToNil(toStruct)
+		return
+	}
+
+	setMapErrorToStruct(merr, toStruct)
+}
+
 func appendErrors(err error, verrs Errors, fieldName string, message string) (Errors, error) {
 	if _, ok := err.(*validator.InvalidValidationError); ok {
 		return nil, err

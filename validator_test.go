@@ -1,12 +1,14 @@
 package validator_test
 
 import (
+	"fmt"
 	"reflect"
 	"regexp"
 	"testing"
 
 	gpvalidator "github.com/go-playground/validator"
 	"github.com/pkg/errors"
+	"github.com/theplant/testingutils"
 	"github.com/theplant/validator"
 )
 
@@ -24,6 +26,14 @@ var infoRules = []validator.Rule{
 	{Field: "Age", Tag: "min=20,max=100"},
 	{Field: "Address", Tag: "required,lte=50"},
 	{Field: "ZipCode", Tag: "zipcode_jp"},
+}
+
+type infoError struct {
+	Name     []string
+	Password []string
+	Age      []string
+	Address  []string
+	ZipCode  []string
 }
 
 func TestValidate_DoRulesWithNested(t *testing.T) {
@@ -666,5 +676,75 @@ func TestValidate_DoRulesWithEqfieldTag(t *testing.T) {
 
 	if !reflect.DeepEqual(gotVerrMap, wantVerrMap) {
 		t.Fatalf("got %v, want %v", gotVerrMap, wantVerrMap)
+	}
+}
+
+func TestValidate_DoRulesToStruct(t *testing.T) {
+	infoEmpty := info{}
+
+	validate := validator.New()
+
+	var infoErr *infoError
+	validate.DoRulesToStruct(infoEmpty, infoRules, &infoErr)
+
+	wantInfoErr := infoError{
+		Name:     []string{"can not be blank"},
+		Password: []string{"is too short, minimum length is 8"},
+		Age:      []string{"is too small, minimum is 20"},
+		Address:  []string{"can not be blank"},
+		ZipCode:  []string{"invalid zipcode format, format is 123-1234"},
+	}
+
+	diff := testingutils.PrettyJsonDiff(wantInfoErr, infoErr)
+	if len(diff) > 0 {
+		t.Fatalf(diff)
+	}
+}
+
+func TestValidate_DoRulesToStruct__toStructCheck1(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			if fmt.Sprint(r) != "toStruct must be pointer to pointer to struct" {
+				t.Fatal("should panic 'toStruct must be pointer to pointer to struct'")
+			}
+		}
+	}()
+
+	infoEmpty := info{}
+
+	validate := validator.New()
+
+	var infoErr infoError
+	validate.DoRulesToStruct(infoEmpty, infoRules, &infoErr)
+}
+
+func TestValidate_DoRulesToStruct__toStructCheck2(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			if fmt.Sprint(r) != "toStruct must be pointer to pointer to struct" {
+				t.Fatal("should panic 'toStruct must be pointer to pointer to struct'")
+			}
+		}
+	}()
+
+	infoEmpty := info{}
+
+	validate := validator.New()
+
+	var infoErr *infoError
+	validate.DoRulesToStruct(infoEmpty, infoRules, &infoErr)
+}
+
+func TestValidate_DoRulesToStruct__NoValidationErrors(t *testing.T) {
+	infoEmpty := info{Name: "name", Password: "password", Age: 30, Address: "address", ZipCode: "000-0000"}
+
+	validate := validator.New()
+
+	var infoErr *infoError
+	infoErr = &infoError{Password: []string{"for test"}}
+
+	validate.DoRulesToStruct(infoEmpty, infoRules, &infoErr)
+	if infoErr != nil {
+		t.Fatal("infoErr should be nil")
 	}
 }
