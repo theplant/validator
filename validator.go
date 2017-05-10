@@ -73,7 +73,15 @@ func New() *Validate {
 		panic(errors.Wrap(err, "register regexp validation simple_email failed"))
 	}
 
+	if err := validate.RegisterValidation("strict_required", validateStrictRequired); err != nil {
+		panic(errors.Wrap(err, "register validation strict_required failed"))
+	}
+
 	return &validate
+}
+
+func validateStrictRequired(fl validator.FieldLevel) bool {
+	return strings.TrimSpace(fl.Field().String()) != ""
 }
 
 // RegisterInclusionValidationParam register a param for inclusion validation.

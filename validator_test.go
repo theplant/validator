@@ -13,15 +13,17 @@ import (
 )
 
 type info struct {
-	Name     string
-	Password string
-	Age      int
-	Address  string
-	ZipCode  string
+	Name      string
+	FirstName string
+	Password  string
+	Age       int
+	Address   string
+	ZipCode   string
 }
 
 var infoRules = []validator.Rule{
 	{Field: "Name", Tag: "required,lte=20"},
+	{Field: "FirstName", Tag: "strict_required"},
 	{Field: "Password", Tag: "gte=8"},
 	{Field: "Age", Tag: "min=20,max=100"},
 	{Field: "Address", Tag: "required,lte=50"},
@@ -29,11 +31,12 @@ var infoRules = []validator.Rule{
 }
 
 type infoError struct {
-	Name     []string
-	Password []string
-	Age      []string
-	Address  []string
-	ZipCode  []string
+	Name      []string
+	FirstName []string
+	Password  []string
+	Age       []string
+	Address   []string
+	ZipCode   []string
 }
 
 func TestValidate_DoRulesWithNested(t *testing.T) {
@@ -353,11 +356,12 @@ func TestVErrorsToMapWithDefaultTemplateMap(t *testing.T) {
 		t.Fatalf("got unexpected error: %v", err)
 	}
 	wantValidationErrs := validator.MapError{
-		"Name":     {"can not be blank"},
-		"Password": {"is too short, minimum length is 8"},
-		"Age":      {"is too small, minimum is 20"},
-		"Address":  {"can not be blank"},
-		"ZipCode":  {"invalid zipcode format, format is 123-1234"},
+		"Name":      {"can not be blank"},
+		"FirstName": {"validation failed with strict_required"},
+		"Password":  {"is too short, minimum length is 8"},
+		"Age":       {"is too small, minimum is 20"},
+		"Address":   {"can not be blank"},
+		"ZipCode":   {"invalid zipcode format, format is 123-1234"},
 	}
 
 	if !reflect.DeepEqual(wantValidationErrs, gotValidationErrs) {
@@ -391,11 +395,12 @@ func TestVErrorsToMapWithCustomTemplateMap(t *testing.T) {
 		t.Fatalf("got unexpected error: %v", err)
 	}
 	wantValidationErrs := validator.MapError{
-		"Name":     {"maximum length is 20"},
-		"Password": {"minimum length is 8"},
-		"Age":      {"is too large, maximum is 100"},
-		"Address":  {"maximum length is 50"},
-		"ZipCode":  {"invalid zipcode format"},
+		"Name":      {"maximum length is 20"},
+		"FirstName": {"validation failed with strict_required"},
+		"Password":  {"minimum length is 8"},
+		"Age":       {"is too large, maximum is 100"},
+		"Address":   {"maximum length is 50"},
+		"ZipCode":   {"invalid zipcode format"},
 	}
 
 	if !reflect.DeepEqual(wantValidationErrs, gotValidationErrs) {
@@ -718,11 +723,12 @@ func TestValidate_DoRulesToStruct(t *testing.T) {
 	validate.DoRulesToStruct(infoEmpty, infoRules, &infoErr)
 
 	wantInfoErr := infoError{
-		Name:     []string{"can not be blank"},
-		Password: []string{"is too short, minimum length is 8"},
-		Age:      []string{"is too small, minimum is 20"},
-		Address:  []string{"can not be blank"},
-		ZipCode:  []string{"invalid zipcode format, format is 123-1234"},
+		Name:      []string{"can not be blank"},
+		FirstName: []string{"validation failed with strict_required"},
+		Password:  []string{"is too short, minimum length is 8"},
+		Age:       []string{"is too small, minimum is 20"},
+		Address:   []string{"can not be blank"},
+		ZipCode:   []string{"invalid zipcode format, format is 123-1234"},
 	}
 
 	diff := testingutils.PrettyJsonDiff(wantInfoErr, infoErr)
@@ -766,7 +772,7 @@ func TestValidate_DoRulesToStruct__toStructCheck2(t *testing.T) {
 }
 
 func TestValidate_DoRulesToStruct__NoValidationErrors(t *testing.T) {
-	infoEmpty := info{Name: "name", Password: "password", Age: 30, Address: "address", ZipCode: "000-0000"}
+	infoEmpty := info{Name: "name", FirstName: "first name", Password: "password", Age: 30, Address: "address", ZipCode: "000-0000"}
 
 	validate := validator.New()
 
@@ -776,5 +782,28 @@ func TestValidate_DoRulesToStruct__NoValidationErrors(t *testing.T) {
 	validate.DoRulesToStruct(infoEmpty, infoRules, &infoErr)
 	if infoErr != nil {
 		t.Fatal("infoErr should be nil")
+	}
+}
+
+func TestValidate_StrictRequired(t *testing.T) {
+	infoEmpty := info{FirstName: "   "}
+
+	validate := validator.New()
+
+	var infoErr *infoError
+	validate.DoRulesToStruct(infoEmpty, infoRules, &infoErr)
+
+	wantInfoErr := infoError{
+		Name:      []string{"can not be blank"},
+		FirstName: []string{"validation failed with strict_required"},
+		Password:  []string{"is too short, minimum length is 8"},
+		Age:       []string{"is too small, minimum is 20"},
+		Address:   []string{"can not be blank"},
+		ZipCode:   []string{"invalid zipcode format, format is 123-1234"},
+	}
+
+	diff := testingutils.PrettyJsonDiff(wantInfoErr, infoErr)
+	if len(diff) > 0 {
+		t.Fatalf(diff)
 	}
 }
