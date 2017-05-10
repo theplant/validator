@@ -26,6 +26,7 @@ type Rule struct {
 	// For example "required,lte=20".
 	Tag     string
 	Message string
+	Err     error
 }
 
 type Error struct {
@@ -33,6 +34,7 @@ type Error struct {
 	Tag     string
 	Param   string
 	Message string
+	Err     error
 }
 
 type Errors []Error
@@ -239,7 +241,7 @@ func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName st
 				}
 				otherFieldVal := otherField.Interface()
 
-				verrs, err = appendErrors(v.GPValidate.VarWithValue(fieldVal, otherFieldVal, "eqfield"), verrs, fieldName, rule.Message)
+				verrs, err = appendErrors(v.GPValidate.VarWithValue(fieldVal, otherFieldVal, "eqfield"), verrs, fieldName, rule.Message, rule.Err)
 				if err != nil {
 					return nil, err
 				}
@@ -249,7 +251,7 @@ func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName st
 		}
 
 		if len(varTags) > 0 {
-			verrs, err = appendErrors(v.GPValidate.Var(fieldVal, strings.Join(varTags, tagSeparator)), verrs, fieldName, rule.Message)
+			verrs, err = appendErrors(v.GPValidate.Var(fieldVal, strings.Join(varTags, tagSeparator)), verrs, fieldName, rule.Message, rule.Err)
 			if err != nil {
 				return nil, err
 			}
@@ -310,7 +312,7 @@ func (v *Validate) DoRulesToStruct(data interface{}, rules []Rule, toStruct inte
 	setMapErrorToStruct(merr, toStruct)
 }
 
-func appendErrors(err error, verrs Errors, fieldName string, message string) (Errors, error) {
+func appendErrors(err error, verrs Errors, fieldName string, message string, ruleErr error) (Errors, error) {
 	if _, ok := err.(*validator.InvalidValidationError); ok {
 		return nil, err
 	}
@@ -322,6 +324,7 @@ func appendErrors(err error, verrs Errors, fieldName string, message string) (Er
 				Tag:     validationErr.Tag(),
 				Param:   validationErr.Param(),
 				Message: message,
+				Err:     ruleErr,
 			})
 		}
 	}

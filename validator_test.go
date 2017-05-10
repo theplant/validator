@@ -151,6 +151,36 @@ func TestValidate_DoRulesWithMessageCanBeReturn(t *testing.T) {
 	}
 }
 
+func TestValidate_DoRulesWithErrCanBeReturn(t *testing.T) {
+	ruleErr := errors.New("rule err")
+
+	newInfoRules := []validator.Rule{
+		{Field: "Name", Tag: "required", Message: "I'm a message", Err: ruleErr},
+	}
+
+	validate := validator.New()
+
+	gotVerrs, err := validate.DoRules(info{}, newInfoRules)
+	if err != nil {
+		t.Fatalf("got unexpected error: %v", err)
+	}
+
+	if len(gotVerrs) != 1 {
+		t.Fatal("should return one Error")
+	}
+
+	wantVerrs := validator.Error{
+		Field:   "Name",
+		Tag:     "required",
+		Message: "I'm a message",
+		Err:     ruleErr,
+	}
+
+	if !reflect.DeepEqual(gotVerrs[0], wantVerrs) {
+		t.Fatalf("got %v, want %v", gotVerrs, wantVerrs)
+	}
+}
+
 func TestValidate_RegisterInclusionValidationParam(t *testing.T) {
 	type info struct {
 		Gender  string
