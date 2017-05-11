@@ -714,13 +714,13 @@ func TestValidate_DoRulesWithEqfieldTag(t *testing.T) {
 	}
 }
 
-func TestValidate_DoRulesToStruct(t *testing.T) {
+func TestValidate_DoRulesToStructAndSetNil(t *testing.T) {
 	infoEmpty := info{}
 
 	validate := validator.New()
 
 	var infoErr *infoError
-	validate.DoRulesToStruct(infoEmpty, infoRules, &infoErr)
+	validate.DoRulesToStructAndSetNil(infoEmpty, infoRules, &infoErr)
 
 	wantInfoErr := infoError{
 		Name:      []string{"can not be blank"},
@@ -737,7 +737,7 @@ func TestValidate_DoRulesToStruct(t *testing.T) {
 	}
 }
 
-func TestValidate_DoRulesToStruct__toStructCheck1(t *testing.T) {
+func TestValidate_DoRulesToStructAndSetNil__toStructCheck1(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			if fmt.Sprint(r) != "toStruct must be pointer to pointer to struct" {
@@ -751,10 +751,10 @@ func TestValidate_DoRulesToStruct__toStructCheck1(t *testing.T) {
 	validate := validator.New()
 
 	var infoErr infoError
-	validate.DoRulesToStruct(infoEmpty, infoRules, &infoErr)
+	validate.DoRulesToStructAndSetNil(infoEmpty, infoRules, &infoErr)
 }
 
-func TestValidate_DoRulesToStruct__toStructCheck2(t *testing.T) {
+func TestValidate_DoRulesToStructAndSetNil__toStructCheck2(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			if fmt.Sprint(r) != "toStruct must be pointer to pointer to struct" {
@@ -768,10 +768,10 @@ func TestValidate_DoRulesToStruct__toStructCheck2(t *testing.T) {
 	validate := validator.New()
 
 	var infoErr *infoError
-	validate.DoRulesToStruct(infoEmpty, infoRules, &infoErr)
+	validate.DoRulesToStructAndSetNil(infoEmpty, infoRules, &infoErr)
 }
 
-func TestValidate_DoRulesToStruct__NoValidationErrors(t *testing.T) {
+func TestValidate_DoRulesToStructAndSetNil__NoValidationErrorsAndSetNil(t *testing.T) {
 	infoEmpty := info{Name: "name", FirstName: "first name", Password: "password", Age: 30, Address: "address", ZipCode: "000-0000"}
 
 	validate := validator.New()
@@ -779,7 +779,7 @@ func TestValidate_DoRulesToStruct__NoValidationErrors(t *testing.T) {
 	var infoErr *infoError
 	infoErr = &infoError{Password: []string{"for test"}}
 
-	validate.DoRulesToStruct(infoEmpty, infoRules, &infoErr)
+	validate.DoRulesToStructAndSetNil(infoEmpty, infoRules, &infoErr)
 	if infoErr != nil {
 		t.Fatal("infoErr should be nil")
 	}
@@ -805,5 +805,19 @@ func TestValidate_StrictRequired(t *testing.T) {
 	diff := testingutils.PrettyJsonDiff(wantInfoErr, infoErr)
 	if len(diff) > 0 {
 		t.Fatalf(diff)
+	}
+}
+
+func TestValidate_DoRulesToStruct__NoValidationErrorsAndNoSetNil(t *testing.T) {
+	infoEmpty := info{Name: "name", FirstName: "first name", Password: "password", Age: 30, Address: "address", ZipCode: "000-0000"}
+
+	validate := validator.New()
+
+	var infoErr *infoError
+	infoErr = &infoError{Password: []string{"for test"}}
+
+	validate.DoRulesToStruct(infoEmpty, infoRules, &infoErr)
+	if infoErr == nil {
+		t.Fatal("infoErr shouldn't be nil")
 	}
 }

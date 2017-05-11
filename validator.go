@@ -304,7 +304,7 @@ func checkToStruct(toStruct interface{}) {
 // toStruct must be pointer to pointer to struct,
 // and fields must contains all rule.Field and type must be []string.
 // If no validation errors, then set toStruct to nil.
-func (v *Validate) DoRulesToStruct(data interface{}, rules []Rule, toStruct interface{}) {
+func (v *Validate) DoRulesToStructAndSetNil(data interface{}, rules []Rule, toStruct interface{}) {
 	checkToStruct(toStruct)
 
 	merr, err := v.DoRulesAndToMapError(data, rules)
@@ -315,6 +315,20 @@ func (v *Validate) DoRulesToStruct(data interface{}, rules []Rule, toStruct inte
 	if len(merr) == 0 {
 		setToStructToNil(toStruct)
 		return
+	}
+
+	setMapErrorToStruct(merr, toStruct)
+}
+
+// TODO toStruct can be pointer to struct.
+// toStruct must be pointer to pointer to struct,
+// and fields must contains all rule.Field and type must be []string.
+func (v *Validate) DoRulesToStruct(data interface{}, rules []Rule, toStruct interface{}) {
+	checkToStruct(toStruct)
+
+	merr, err := v.DoRulesAndToMapError(data, rules)
+	if err != nil {
+		panic(err)
 	}
 
 	setMapErrorToStruct(merr, toStruct)
