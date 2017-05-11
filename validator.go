@@ -273,15 +273,33 @@ func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName st
 	return verrs, nil
 }
 
-func setMapErrorToStruct(merr MapError, toStruct interface{}) {
+func setVErrsToStruct(verrs Errors, toStruct interface{}) {
+	messageMap := map[string][]string{}
+	errMap := map[string][]error{}
+	for _, verr := range verrs {
+		messageMap[verr.Field] = append(messageMap[verr.Field], verr.Message)
+		errMap[verr.Field] = append(errMap[verr.Field], verr.Err)
+	}
+
 	v := reflect.ValueOf(toStruct).Elem()
 	if v.IsNil() {
 		v.Set(reflect.New(v.Type().Elem()))
 	}
 	vv := v.Elem()
 
-	for field, messages := range merr {
-		vv.FieldByName(field).Set(reflect.ValueOf(messages))
+	for field, messages := range messageMap {
+		vvf := vv.FieldByName(field)
+		messagesV := reflect.ValueOf(messages)
+		if vvf.Type().String() == messagesV.Type().String() {
+			vvf.Set(reflect.ValueOf(messages))
+		}
+	}
+	for field, errs := range errMap {
+		vvf := vv.FieldByName(field)
+		errsV := reflect.ValueOf(errs)
+		if vvf.Type().String() == errsV.Type().String() {
+			vvf.Set(reflect.ValueOf(errs))
+		}
 	}
 }
 
@@ -307,17 +325,17 @@ func checkToStruct(toStruct interface{}) {
 func (v *Validate) DoRulesToStructAndSetNil(data interface{}, rules []Rule, toStruct interface{}) {
 	checkToStruct(toStruct)
 
-	merr, err := v.DoRulesAndToMapError(data, rules)
+	verrs, err := v.DoRules(data, rules)
 	if err != nil {
 		panic(err)
 	}
 
-	if len(merr) == 0 {
+	if len(verrs) == 0 {
 		setToStructToNil(toStruct)
 		return
 	}
 
-	setMapErrorToStruct(merr, toStruct)
+	setVErrsToStruct(verrs, toStruct)
 }
 
 // TODO toStruct can be pointer to struct.
@@ -326,12 +344,12 @@ func (v *Validate) DoRulesToStructAndSetNil(data interface{}, rules []Rule, toSt
 func (v *Validate) DoRulesToStruct(data interface{}, rules []Rule, toStruct interface{}) {
 	checkToStruct(toStruct)
 
-	merr, err := v.DoRulesAndToMapError(data, rules)
+	verrs, err := v.DoRules(data, rules)
 	if err != nil {
 		panic(err)
 	}
 
-	setMapErrorToStruct(merr, toStruct)
+	setVErrsToStruct(verrs, toStruct)
 }
 
 func appendErrors(err error, verrs Errors, fieldName string, message string, ruleErr error) (Errors, error) {

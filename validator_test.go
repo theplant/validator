@@ -22,15 +22,15 @@ type info struct {
 }
 
 var infoRules = []validator.Rule{
-	{Field: "Name", Tag: "required,lte=20"},
-	{Field: "FirstName", Tag: "strict_required"},
-	{Field: "Password", Tag: "gte=8"},
-	{Field: "Age", Tag: "min=20,max=100"},
-	{Field: "Address", Tag: "required,lte=50"},
-	{Field: "ZipCode", Tag: "zipcode_jp"},
+	{Field: "Name", Tag: "required,lte=20", Message: "name", Err: ErrName},
+	{Field: "FirstName", Tag: "strict_required", Message: "first name", Err: ErrFirstName},
+	{Field: "Password", Tag: "gte=8", Message: "password", Err: ErrPassword},
+	{Field: "Age", Tag: "min=20,max=100", Message: "age", Err: ErrAge},
+	{Field: "Address", Tag: "required,lte=50", Message: "address", Err: ErrAddress},
+	{Field: "ZipCode", Tag: "zipcode_jp", Message: "zipcode", Err: errZipCode},
 }
 
-type infoError struct {
+type infoStringsError struct {
 	Name      []string
 	FirstName []string
 	Password  []string
@@ -38,6 +38,24 @@ type infoError struct {
 	Address   []string
 	ZipCode   []string
 }
+
+type infoErrorsError struct {
+	Name      []error
+	FirstName []error
+	Password  []error
+	Age       []error
+	Address   []error
+	ZipCode   []error
+}
+
+var (
+	ErrName      = errors.New("name")
+	ErrFirstName = errors.New("first name")
+	ErrPassword  = errors.New("password")
+	ErrAge       = errors.New("age")
+	ErrAddress   = errors.New("address")
+	errZipCode   = errors.New("zipcode")
+)
 
 func TestValidate_DoRulesWithNested(t *testing.T) {
 	type address struct {
@@ -719,16 +737,16 @@ func TestValidate_DoRulesToStructAndSetNil(t *testing.T) {
 
 	validate := validator.New()
 
-	var infoErr *infoError
+	var infoErr *infoStringsError
 	validate.DoRulesToStructAndSetNil(infoEmpty, infoRules, &infoErr)
 
-	wantInfoErr := infoError{
-		Name:      []string{"can not be blank"},
-		FirstName: []string{"validation failed with strict_required"},
-		Password:  []string{"is too short, minimum length is 8"},
-		Age:       []string{"is too small, minimum is 20"},
-		Address:   []string{"can not be blank"},
-		ZipCode:   []string{"invalid zipcode format, format is 123-1234"},
+	wantInfoErr := infoStringsError{
+		Name:      []string{"name"},
+		FirstName: []string{"first name"},
+		Password:  []string{"password"},
+		Age:       []string{"age"},
+		Address:   []string{"address"},
+		ZipCode:   []string{"zipcode"},
 	}
 
 	diff := testingutils.PrettyJsonDiff(wantInfoErr, infoErr)
@@ -750,7 +768,7 @@ func TestValidate_DoRulesToStructAndSetNil__toStructCheck1(t *testing.T) {
 
 	validate := validator.New()
 
-	var infoErr infoError
+	var infoErr infoStringsError
 	validate.DoRulesToStructAndSetNil(infoEmpty, infoRules, &infoErr)
 }
 
@@ -767,7 +785,7 @@ func TestValidate_DoRulesToStructAndSetNil__toStructCheck2(t *testing.T) {
 
 	validate := validator.New()
 
-	var infoErr *infoError
+	var infoErr *infoStringsError
 	validate.DoRulesToStructAndSetNil(infoEmpty, infoRules, &infoErr)
 }
 
@@ -776,8 +794,8 @@ func TestValidate_DoRulesToStructAndSetNil__NoValidationErrorsAndSetNil(t *testi
 
 	validate := validator.New()
 
-	var infoErr *infoError
-	infoErr = &infoError{Password: []string{"for test"}}
+	var infoErr *infoStringsError
+	infoErr = &infoStringsError{Password: []string{"for test"}}
 
 	validate.DoRulesToStructAndSetNil(infoEmpty, infoRules, &infoErr)
 	if infoErr != nil {
@@ -790,16 +808,16 @@ func TestValidate_StrictRequired(t *testing.T) {
 
 	validate := validator.New()
 
-	var infoErr *infoError
+	var infoErr *infoStringsError
 	validate.DoRulesToStruct(infoEmpty, infoRules, &infoErr)
 
-	wantInfoErr := infoError{
-		Name:      []string{"can not be blank"},
-		FirstName: []string{"validation failed with strict_required"},
-		Password:  []string{"is too short, minimum length is 8"},
-		Age:       []string{"is too small, minimum is 20"},
-		Address:   []string{"can not be blank"},
-		ZipCode:   []string{"invalid zipcode format, format is 123-1234"},
+	wantInfoErr := infoStringsError{
+		Name:      []string{"name"},
+		FirstName: []string{"first name"},
+		Password:  []string{"password"},
+		Age:       []string{"age"},
+		Address:   []string{"address"},
+		ZipCode:   []string{"zipcode"},
 	}
 
 	diff := testingutils.PrettyJsonDiff(wantInfoErr, infoErr)
@@ -813,11 +831,34 @@ func TestValidate_DoRulesToStruct__NoValidationErrorsAndNoSetNil(t *testing.T) {
 
 	validate := validator.New()
 
-	var infoErr *infoError
-	infoErr = &infoError{Password: []string{"for test"}}
+	var infoErr *infoStringsError
+	infoErr = &infoStringsError{Password: []string{"for test"}}
 
 	validate.DoRulesToStruct(infoEmpty, infoRules, &infoErr)
 	if infoErr == nil {
 		t.Fatal("infoErr shouldn't be nil")
+	}
+}
+
+func TestValidate_ToStructContainsErrorsType(t *testing.T) {
+	infoEmpty := info{}
+
+	validate := validator.New()
+
+	var infoErr *infoErrorsError
+	validate.DoRulesToStruct(infoEmpty, infoRules, &infoErr)
+
+	wantInfoErr := infoErrorsError{
+		Name:      []error{ErrName},
+		FirstName: []error{ErrFirstName},
+		Password:  []error{ErrPassword},
+		Age:       []error{ErrAge},
+		Address:   []error{ErrAddress},
+		ZipCode:   []error{errZipCode},
+	}
+
+	diff := testingutils.PrettyJsonDiff(wantInfoErr, infoErr)
+	if len(diff) > 0 {
+		t.Fatalf(diff)
 	}
 }
