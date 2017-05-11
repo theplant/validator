@@ -16,7 +16,7 @@ func IsStructZero(sIface interface{}) bool {
 	vv := v.Elem()
 	for i := 0; i < vv.NumField(); i++ {
 		field := vv.Field(i)
-		if field.Interface() != reflect.Zero(field.Type()).Interface() {
+		if !reflect.DeepEqual(field.Interface(), reflect.Zero(field.Type()).Interface()) {
 			return false
 		}
 	}
