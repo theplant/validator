@@ -23,3 +23,10 @@ func IsStructZero(sIface interface{}) bool {
 
 	return true
 }
+
+func IsValidationError(err error) bool {
+	_, ok := err.(interface {
+		IsValidationError()
+	})
+	return ok
+}

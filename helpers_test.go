@@ -1,6 +1,7 @@
 package validator_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -51,4 +52,39 @@ func TestIsStructZero__sIfaceMustBeStruct(t *testing.T) {
 	}()
 
 	validator.IsStructZero(info{})
+}
+
+type theValidationError struct {
+	Name []error
+}
+
+func (ve *theValidationError) IsValidationError() {}
+
+func (ve *theValidationError) Error() string {
+	return ""
+}
+
+type notTheValidationError struct {
+	Name []error
+}
+
+func (ve *notTheValidationError) Error() string {
+	return ""
+}
+
+func TestIsValidationError(t *testing.T) {
+	theValidationError := &theValidationError{}
+	if validator.IsValidationError(theValidationError) != true {
+		t.Fatal()
+	}
+
+	notTheValidationError := &notTheValidationError{}
+	if validator.IsValidationError(notTheValidationError) != false {
+		t.Fatal()
+	}
+
+	err := errors.New("new error")
+	if validator.IsValidationError(err) != false {
+		t.Fatal()
+	}
 }
