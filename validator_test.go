@@ -9,7 +9,9 @@ import (
 	gpvalidator "github.com/go-playground/validator"
 	"github.com/pkg/errors"
 	"github.com/theplant/testingutils"
+	"github.com/theplant/testingutils/assert"
 	"github.com/theplant/validator"
+	"github.com/theplant/validator/proto"
 )
 
 type info struct {
@@ -22,12 +24,12 @@ type info struct {
 }
 
 var infoRules = []validator.Rule{
-	{Field: "Name", Tag: "required,lte=20", Message: "name", Err: ErrName},
-	{Field: "FirstName", Tag: "strict_required", Message: "first name", Err: ErrFirstName},
-	{Field: "Password", Tag: "gte=8", Message: "password", Err: ErrPassword},
-	{Field: "Age", Tag: "min=20,max=100", Message: "age", Err: ErrAge},
-	{Field: "Address", Tag: "required,lte=50", Message: "address", Err: ErrAddress},
-	{Field: "ZipCode", Tag: "zipcode_jp", Message: "zipcode", Err: errZipCode},
+	{Field: "Name", Tag: "required,lte=20", Code: "1 name", Message: "name", Err: ErrName},
+	{Field: "FirstName", Tag: "strict_required", Code: "2 first name", Message: "first name", Err: ErrFirstName},
+	{Field: "Password", Tag: "gte=8", Message: "password", Code: "3 password", Err: ErrPassword},
+	{Field: "Age", Tag: "min=20,max=100", Message: "age", Code: "4 age", Err: ErrAge},
+	{Field: "Address", Tag: "required,lte=50", Message: "address", Code: "5 address", Err: ErrAddress},
+	{Field: "ZipCode", Tag: "zipcode_jp", Message: "zipcode", Code: "6 zipcode", Err: errZipCode},
 }
 
 type infoStringsError struct {
@@ -48,6 +50,22 @@ type infoErrorsError struct {
 	ZipCode   []error
 }
 
+type address struct {
+	City    string
+	Address string
+}
+
+type user struct {
+	Name    string
+	Age     int
+	Address address
+}
+
+var userRules = []validator.Rule{
+	{Field: "Name", Tag: "required", Code: "1-required", Message: "Name required"},
+	{Field: "Address.City", Tag: "required", Code: "1-required", Message: "Address.City required"},
+}
+
 var (
 	ErrName      = errors.New("name")
 	ErrFirstName = errors.New("first name")
@@ -58,21 +76,6 @@ var (
 )
 
 func TestValidate_DoRulesWithNested(t *testing.T) {
-	type address struct {
-		City    string
-		Address string
-	}
-
-	type user struct {
-		Name    string
-		Age     int
-		Address address
-	}
-
-	userRules := []validator.Rule{
-		{Field: "Address.City", Tag: "required"},
-	}
-
 	validate := validator.New()
 
 	verrs, err := validate.DoRules(user{}, userRules)
@@ -85,6 +88,7 @@ func TestValidate_DoRulesWithNested(t *testing.T) {
 		t.Fatalf("got unexpected error: %v", err)
 	}
 	wantValidationErrs := validator.MapError{
+		"Name":         {"can not be blank"},
 		"Address.City": {"can not be blank"},
 	}
 
@@ -860,5 +864,42 @@ func TestValidate_ToStructContainsErrorsType(t *testing.T) {
 	diff := testingutils.PrettyJsonDiff(wantInfoErr, infoErr)
 	if len(diff) > 0 {
 		t.Fatalf(diff)
+	}
+}
+
+func TestValidate_DoRulesToProtoBadRequest(t *testing.T) {
+	validate := validator.New()
+
+	emptyUser := user{}
+
+	badRequest := validate.DoRulesToProtoBadRequest(emptyUser, userRules)
+
+	wantBadRequest := proto.BadRequest{
+		FieldViolations: []*proto.BadRequest_FieldViolation{
+			{
+				Field:   "Name",
+				Code:    "1-required",
+				Message: "Name required",
+			},
+			{
+				Field:   "Address.City",
+				Code:    "1-required",
+				Message: "Address.City required",
+			},
+		},
+	}
+
+	assert.EqualAndFatal(t, wantBadRequest, badRequest)
+}
+
+func TestValidate_DoRulesToProtoBadRequest__NoError(t *testing.T) {
+	validate := validator.New()
+
+	user := user{Name: "name", Address: address{City: "city"}}
+
+	badRequest := validate.DoRulesToProtoBadRequest(user, userRules)
+
+	if badRequest.FieldViolations != nil {
+		t.Fatal("badRequest.FieldViolations should be nil when no any error")
 	}
 }
