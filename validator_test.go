@@ -869,37 +869,37 @@ func TestValidate_ToStructContainsErrorsType(t *testing.T) {
 
 func TestValidate_DoRulesToProtoBadRequest(t *testing.T) {
 	validate := validator.New()
-
 	emptyUser := user{}
 
-	badRequest := validate.DoRulesToProtoBadRequest(emptyUser, userRules)
+	protoError := validate.DoRulesToProtoError(emptyUser, userRules)
 
-	wantBadRequest := proto.BadRequest{
-		FieldViolations: []*proto.BadRequest_FieldViolation{
-			{
-				Field:   "Name",
-				Code:    "1-required",
-				Message: "Name required",
-			},
-			{
-				Field:   "Address.City",
-				Code:    "1-required",
-				Message: "Address.City required",
+	wantProtoError := proto.Error{
+		ValidationError: proto.ValidationError{
+			FieldViolations: []*proto.ValidationError_FieldViolation{
+				{
+					Field:   "Name",
+					Code:    "1-required",
+					Message: "Name required",
+				},
+				{
+					Field:   "Address.City",
+					Code:    "1-required",
+					Message: "Address.City required",
+				},
 			},
 		},
 	}
 
-	assert.EqualAndFatal(t, wantBadRequest, badRequest)
+	assert.EqualAndFatal(t, wantProtoError, protoError)
 }
 
 func TestValidate_DoRulesToProtoBadRequest__NoError(t *testing.T) {
 	validate := validator.New()
-
 	user := user{Name: "name", Address: address{City: "city"}}
 
-	badRequest := validate.DoRulesToProtoBadRequest(user, userRules)
+	protoError := validate.DoRulesToProtoError(user, userRules)
 
-	if badRequest.FieldViolations != nil {
+	if protoError.FieldViolations != nil {
 		t.Fatal("badRequest.FieldViolations should be nil when no any error")
 	}
 }
