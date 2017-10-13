@@ -63,6 +63,7 @@ type user struct {
 
 var userRules = []validator.Rule{
 	{Field: "Name", Tag: "required", Code: "1-required", Message: "Name required"},
+	{Field: "Age", Tag: "min=20", Code: "2-min", Message: "Age < 20"},
 	{Field: "Address.City", Tag: "required", Code: "1-required", Message: "Address.City required"},
 }
 
@@ -89,6 +90,7 @@ func TestValidate_DoRulesWithNested(t *testing.T) {
 	}
 	wantValidationErrs := validator.MapError{
 		"Name":         {"can not be blank"},
+		"Age":          {"is too small, minimum is 20"},
 		"Address.City": {"can not be blank"},
 	}
 
@@ -882,6 +884,12 @@ func TestValidate_DoRulesToProtoBadRequest(t *testing.T) {
 					Message: "Name required",
 				},
 				{
+					Field:   "Age",
+					Code:    "2-min",
+					Param:   "20",
+					Message: "Age < 20",
+				},
+				{
 					Field:   "Address.City",
 					Code:    "1-required",
 					Message: "Address.City required",
@@ -895,7 +903,7 @@ func TestValidate_DoRulesToProtoBadRequest(t *testing.T) {
 
 func TestValidate_DoRulesToProtoBadRequest__NoError(t *testing.T) {
 	validate := validator.New()
-	user := user{Name: "name", Address: address{City: "city"}}
+	user := user{Name: "name", Age: 50, Address: address{City: "city"}}
 
 	protoError := validate.DoRulesToProtoError(user, userRules)
 

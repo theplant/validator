@@ -16,8 +16,10 @@ message ValidationError {
 
         string code = 2;
 
+        string param = 3;
+
         // A description of why the request element is bad.
-        string message = 3;
+        string message = 4;
     }
 
     // Describes all violations in a client request.

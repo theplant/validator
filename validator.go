@@ -362,6 +362,7 @@ func verrsToProtoError(verrs Errors) (protoErr proto.Error) {
 			&proto.ValidationError_FieldViolation{
 				Field:   verr.Field,
 				Code:    verr.Code,
+				Param:   verr.Param,
 				Message: verr.Message,
 			},
 		)
