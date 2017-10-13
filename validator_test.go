@@ -869,7 +869,7 @@ func TestValidate_ToStructContainsErrorsType(t *testing.T) {
 	}
 }
 
-func TestValidate_DoRulesToProtoBadRequest(t *testing.T) {
+func TestValidate_DoRulesToProtoError(t *testing.T) {
 	validate := validator.New()
 	emptyUser := user{}
 
@@ -901,13 +901,13 @@ func TestValidate_DoRulesToProtoBadRequest(t *testing.T) {
 	assert.EqualAndFatal(t, wantProtoError, protoError)
 }
 
-func TestValidate_DoRulesToProtoBadRequest__NoError(t *testing.T) {
+func TestValidate_DoRulesToProtoError__NoError(t *testing.T) {
 	validate := validator.New()
 	user := user{Name: "name", Age: 50, Address: address{City: "city"}}
 
 	protoError := validate.DoRulesToProtoError(user, userRules)
 
-	if protoError.FieldViolations != nil {
-		t.Fatal("badRequest.FieldViolations should be nil when no any error")
+	if protoError != nil {
+		t.Fatal("protoError should be nil when no any error")
 	}
 }

@@ -10,14 +10,14 @@ type Error struct {
 	ValidationError
 }
 
-func (err Error) Message() proto.Message {
-	return &err
+func (err *Error) Message() proto.Message {
+	return err
 }
 
-func (err Error) HTTPStatusCode() int {
+func (err *Error) HTTPStatusCode() int {
 	return http.StatusUnprocessableEntity // 422
 }
 
-func (err Error) Error() string {
+func (err *Error) Error() string {
 	return "validation error"
 }

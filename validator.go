@@ -355,7 +355,12 @@ func (v *Validate) DoRulesToStruct(data interface{}, rules []Rule, toStruct inte
 	setVErrsToStruct(verrs, toStruct)
 }
 
-func verrsToProtoError(verrs Errors) (protoErr proto.Error) {
+func verrsToProtoError(verrs Errors) (protoErr *proto.Error) {
+	if len(verrs) == 0 {
+		return nil
+	}
+
+	protoErr = new(proto.Error)
 	for _, verr := range verrs {
 		protoErr.FieldViolations = append(
 			protoErr.FieldViolations,
@@ -371,8 +376,8 @@ func verrsToProtoError(verrs Errors) (protoErr proto.Error) {
 	return protoErr
 }
 
-// If no any error, BadRequest.FieldViolations == nil.
-func (v *Validate) DoRulesToProtoError(data interface{}, rules []Rule) proto.Error {
+// If no any error, return nil.
+func (v *Validate) DoRulesToProtoError(data interface{}, rules []Rule) *proto.Error {
 	verrs, err := v.DoRules(data, rules)
 	if err != nil {
 		panic(err)
