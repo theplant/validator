@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package proto;
+
+message ValidationError {
+    string code = 1;
+
+    string message = 2;
+
+    // A message type used to describe a single bad request field.
+    message FieldViolation {
+        // A path leading to a field in the request body. The value will be a
+        // sequence of dot-separated identifiers that identify a protocol buffer
+        // field. E.g., "field_violations.field" would identify this field.
+        string field = 1;
+
+        string code = 2;
+
+        // A description of why the request element is bad.
+        string message = 3;
+    }
+
+    // Describes all violations in a client request.
+    repeated FieldViolation field_violations = 3;
+}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-playground/validator"
 	"github.com/pkg/errors"
+	"github.com/theplant/validator/proto"
 )
 
 type Validate struct {
@@ -25,6 +26,7 @@ type Rule struct {
 	// This tag contains tag and param, use "," to separate multiple tags.
 	// For example "required,lte=20".
 	Tag     string
+	Code    string
 	Message string
 	Err     error
 }
@@ -33,6 +35,7 @@ type Error struct {
 	Field   string
 	Tag     string
 	Param   string
+	Code    string
 	Message string
 	Err     error
 }
@@ -249,7 +252,7 @@ func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName st
 				}
 				otherFieldVal := otherField.Interface()
 
-				verrs, err = appendErrors(v.GPValidate.VarWithValue(fieldVal, otherFieldVal, "eqfield"), verrs, fieldName, rule.Message, rule.Err)
+				verrs, err = appendErrors(v.GPValidate.VarWithValue(fieldVal, otherFieldVal, "eqfield"), verrs, fieldName, rule.Code, rule.Message, rule.Err)
 				if err != nil {
 					return nil, err
 				}
@@ -259,7 +262,7 @@ func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName st
 		}
 
 		if len(varTags) > 0 {
-			verrs, err = appendErrors(v.GPValidate.Var(fieldVal, strings.Join(varTags, tagSeparator)), verrs, fieldName, rule.Message, rule.Err)
+			verrs, err = appendErrors(v.GPValidate.Var(fieldVal, strings.Join(varTags, tagSeparator)), verrs, fieldName, rule.Code, rule.Message, rule.Err)
 			if err != nil {
 				return nil, err
 			}
@@ -352,7 +355,32 @@ func (v *Validate) DoRulesToStruct(data interface{}, rules []Rule, toStruct inte
 	setVErrsToStruct(verrs, toStruct)
 }
 
-func appendErrors(err error, verrs Errors, fieldName string, message string, ruleErr error) (Errors, error) {
+func verrsToProtoError(verrs Errors) (protoErr proto.Error) {
+	for _, verr := range verrs {
+		protoErr.FieldViolations = append(
+			protoErr.FieldViolations,
+			&proto.ValidationError_FieldViolation{
+				Field:   verr.Field,
+				Code:    verr.Code,
+				Message: verr.Message,
+			},
+		)
+	}
+
+	return protoErr
+}
+
+// If no any error, BadRequest.FieldViolations == nil.
+func (v *Validate) DoRulesToProtoError(data interface{}, rules []Rule) proto.Error {
+	verrs, err := v.DoRules(data, rules)
+	if err != nil {
+		panic(err)
+	}
+
+	return verrsToProtoError(verrs)
+}
+
+func appendErrors(err error, verrs Errors, fieldName string, code string, message string, ruleErr error) (Errors, error) {
 	if _, ok := err.(*validator.InvalidValidationError); ok {
 		return nil, err
 	}
@@ -363,6 +391,7 @@ func appendErrors(err error, verrs Errors, fieldName string, message string, rul
 				Field:   fieldName,
 				Tag:     validationErr.Tag(),
 				Param:   validationErr.Param(),
+				Code:    code,
 				Message: message,
 				Err:     ruleErr,
 			})
