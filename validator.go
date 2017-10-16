@@ -217,6 +217,34 @@ func (v *Validate) DoRules(data interface{}, rules []Rule) (Errors, error) {
 	return v.DoRulesWithTagName(data, rules, "")
 }
 
+var crossFields = []string{
+	"eqfield",
+	"nefield",
+	"gtfield",
+	"gtefield",
+	"ltfield",
+	"ltefield",
+	"eqcsfield",
+	"necsfield",
+	"gtcsfield",
+	"gtecsfield",
+	"ltcsfield",
+	"ltecsfield",
+}
+
+func isInStringArray(check string, array []string) bool {
+	for _, v := range array {
+		if check == v {
+			return true
+		}
+	}
+	return false
+}
+
+func isCrossField(fieldName string) bool {
+	return isInStringArray(fieldName, crossFields)
+}
+
 func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName string) (verrs Errors, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -244,19 +272,19 @@ func (v *Validate) DoRulesWithTagName(data interface{}, rules []Rule, tagName st
 
 		varTags := []string{}
 		for _, tag := range splitTag(rule.Tag) {
-			switch getTagBefore(tag) {
-			case "eqfield":
+			tagBefore := getTagBefore(tag)
+			if isCrossField(tagBefore) {
 				otherField, _ := fieldByNameNested(val, getTagAfter(tag), "")
 				if (otherField.Kind() == reflect.Invalid) || (otherField.Kind() == reflect.Ptr && otherField.IsNil()) {
 					return nil, errors.New(fmt.Sprintf("get value from %v field failed", rule.Field))
 				}
 				otherFieldVal := otherField.Interface()
 
-				verrs, err = appendErrors(v.GPValidate.VarWithValue(fieldVal, otherFieldVal, "eqfield"), verrs, fieldName, rule.Code, rule.Message, rule.Err)
+				verrs, err = appendErrors(v.GPValidate.VarWithValue(fieldVal, otherFieldVal, tagBefore), verrs, fieldName, rule.Code, rule.Message, rule.Err)
 				if err != nil {
 					return nil, err
 				}
-			default:
+			} else {
 				varTags = append(varTags, tag)
 			}
 		}

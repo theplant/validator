@@ -76,6 +76,26 @@ var (
 	errZipCode   = errors.New("zipcode")
 )
 
+func TestValidate_DoRulesWithCrossFields(t *testing.T) {
+	validate := validator.New()
+
+	infoRules := []validator.Rule{
+		{Field: "Name", Tag: "eqfield=FirstName"},
+		{Field: "Address", Tag: "nefield=ZipCode"},
+	}
+	info := info{Name: "name", Address: "address", ZipCode: "address"}
+
+	verrs, err := validate.DoRules(info, infoRules)
+	assert.NoErrorAndFatal(t, err)
+
+	wantVerrs := validator.Errors{
+		{Field: "Name", Tag: "eqfield"},
+		{Field: "Address", Tag: "nefield"},
+	}
+
+	assert.EqualAndFatal(t, wantVerrs, verrs)
+}
+
 func TestValidate_DoRulesWithNested(t *testing.T) {
 	validate := validator.New()
 
