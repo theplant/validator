@@ -876,24 +876,22 @@ func TestValidate_DoRulesToProtoError(t *testing.T) {
 	protoError := validate.DoRulesToProtoError(emptyUser, userRules)
 
 	wantProtoError := proto.Error{
-		ValidationError: proto.ValidationError{
-			FieldViolations: []*proto.ValidationError_FieldViolation{
-				{
-					Field:   "Name",
-					Code:    "1-required",
-					Message: "Name required",
-				},
-				{
-					Field:   "Age",
-					Code:    "2-min",
-					Param:   "20",
-					Message: "Age < 20",
-				},
-				{
-					Field:   "Address.City",
-					Code:    "1-required",
-					Message: "Address.City required",
-				},
+		FieldViolations: []*proto.ValidationError_FieldViolation{
+			{
+				Field: "Name",
+				Code:  "1-required",
+				Msg:   "Name required",
+			},
+			{
+				Field: "Age",
+				Code:  "2-min",
+				Param: "20",
+				Msg:   "Age < 20",
+			},
+			{
+				Field: "Address.City",
+				Code:  "1-required",
+				Msg:   "Address.City required",
 			},
 		},
 	}

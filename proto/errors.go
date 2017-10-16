@@ -6,12 +6,11 @@ import (
 	"github.com/gogo/protobuf/proto"
 )
 
-type Error struct {
-	ValidationError
-}
+type Error ValidationError
 
 func (err *Error) Message() proto.Message {
-	return err
+	v := ValidationError(*err)
+	return &v
 }
 
 func (err *Error) HTTPStatusCode() int {

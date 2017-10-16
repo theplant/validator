@@ -365,10 +365,10 @@ func verrsToProtoError(verrs Errors) (protoErr *proto.Error) {
 		protoErr.FieldViolations = append(
 			protoErr.FieldViolations,
 			&proto.ValidationError_FieldViolation{
-				Field:   verr.Field,
-				Code:    verr.Code,
-				Param:   verr.Param,
-				Message: verr.Message,
+				Field: verr.Field,
+				Code:  verr.Code,
+				Param: verr.Param,
+				Msg:   verr.Message,
 			},
 		)
 	}

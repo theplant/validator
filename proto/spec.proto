@@ -5,7 +5,7 @@ package proto;
 message ValidationError {
     string code = 1;
 
-    string message = 2;
+    string msg = 2;
 
     // A message type used to describe a single bad request field.
     message FieldViolation {
@@ -19,7 +19,7 @@ message ValidationError {
         string param = 3;
 
         // A description of why the request element is bad.
-        string message = 4;
+        string msg = 4;
     }
 
     // Describes all violations in a client request.
