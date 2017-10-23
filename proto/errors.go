@@ -3,7 +3,7 @@ package proto
 import (
 	"net/http"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 type Error ValidationError
