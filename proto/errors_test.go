@@ -3,7 +3,7 @@ package proto
 import (
 	"testing"
 
-	"github.com/theplant/testingutils/assert"
+	"github.com/theplant/testingutils/fatalassert"
 )
 
 func TestErrorMessage(t *testing.T) {
@@ -137,8 +137,8 @@ func TestErrorMessage(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			gotValidationError := test.error.Message().(*ValidationError)
-			assert.EqualAndFatal(t, test.expectedValidationError, gotValidationError)
+			gotValidationError := Error(*test.error.Message().(*ValidationError))
+			fatalassert.Equal(t, test.expectedValidationError, gotValidationError)
 		})
 	}
 }

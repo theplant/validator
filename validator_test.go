@@ -9,7 +9,7 @@ import (
 	gpvalidator "github.com/go-playground/validator"
 	"github.com/pkg/errors"
 	"github.com/theplant/testingutils"
-	"github.com/theplant/testingutils/assert"
+	"github.com/theplant/testingutils/fatalassert"
 	"github.com/theplant/validator"
 	"github.com/theplant/validator/proto"
 )
@@ -86,14 +86,14 @@ func TestValidate_DoRulesWithCrossFields(t *testing.T) {
 	info := info{Name: "name", Address: "address", ZipCode: "address"}
 
 	verrs, err := validate.DoRules(info, infoRules)
-	assert.NoErrorAndFatal(t, err)
+	fatalassert.NoError(t, err)
 
 	wantVerrs := validator.Errors{
 		{Field: "Name", Tag: "eqfield"},
 		{Field: "Address", Tag: "nefield"},
 	}
 
-	assert.EqualAndFatal(t, wantVerrs, verrs)
+	fatalassert.Equal(t, wantVerrs, verrs)
 }
 
 func TestValidate_DoRulesWithNested(t *testing.T) {
@@ -322,9 +322,6 @@ func TestValidate_RegisterInclusionValidationParamWithIntSliceType(t *testing.T)
 	}
 
 	verrs, err = validate.DoRules(infoSuccess, infoRules)
-	if err != nil {
-		t.Fatalf("got unexpected error: %v", err)
-	}
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
@@ -895,7 +892,7 @@ func TestValidate_DoRulesToProtoError(t *testing.T) {
 
 	protoError := validate.DoRulesToProtoError(emptyUser, userRules)
 
-	wantProtoError := proto.Error{
+	wantProtoError := &proto.Error{
 		FieldViolations: []*proto.ValidationError_FieldViolation{
 			{
 				Field: "Name",
@@ -916,7 +913,7 @@ func TestValidate_DoRulesToProtoError(t *testing.T) {
 		},
 	}
 
-	assert.EqualAndFatal(t, wantProtoError, protoError)
+	fatalassert.Equal(t, wantProtoError, protoError)
 }
 
 func TestValidate_DoRulesToProtoError__NoError(t *testing.T) {

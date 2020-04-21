@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package proto;
 
+import "google/protobuf/any.proto";
+
 message ValidationError {
     string code = 1;
 
@@ -20,6 +22,9 @@ message ValidationError {
 
         // A description of why the request element is bad.
         string msg = 4;
+
+        // Extension.
+        google.protobuf.Any payload = 5;
     }
 
     // Describes all violations in a client request.
