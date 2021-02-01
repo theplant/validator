@@ -11,8 +11,14 @@ type Error ValidationError
 func (err *Error) Message() proto.Message {
 	v := ValidationError(*err)
 
-	if v.Code == "" && len(v.FieldViolations) == 1 {
-		v.Code = v.FieldViolations[0].Code
+	if len(v.FieldViolations) == 1 {
+		f0 := v.FieldViolations[0]
+		if v.Code == "" {
+			v.Code = f0.Code
+		}
+		if v.Hmsg == "" {
+			v.Hmsg = f0.Hmsg
+		}
 	}
 
 	return &v

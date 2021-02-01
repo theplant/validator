@@ -48,17 +48,20 @@ func TestErrorMessage(t *testing.T) {
 						Field: "field1",
 						Code:  "field1 code",
 						Msg:   "field1 message",
+						Hmsg:  "field1 human message",
 					},
 				},
 			},
 
 			expectedValidationError: Error{
 				Code: "field1 code",
+				Hmsg: "field1 human message",
 				FieldViolations: []*ValidationError_FieldViolation{
 					{
 						Field: "field1",
 						Code:  "field1 code",
 						Msg:   "field1 message",
+						Hmsg:  "field1 human message",
 					},
 				},
 			},
