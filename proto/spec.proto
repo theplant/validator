@@ -9,8 +9,8 @@ message ValidationError {
 
     string msg = 2;
 
-    // hmsg is the default display message in view(web/app) when an error occurs.
-    string hmsg = 4;
+    // default_view_msg is the default display message in view(web/app) when an error occurs.
+    string default_view_msg = 4;
 
     // A message type used to describe a single bad request field.
     message FieldViolation {
@@ -26,8 +26,8 @@ message ValidationError {
         // A description of why the request element is bad.
         string msg = 4;
 
-        // hmsg is the default display message in view(web/app) when an error occurs.
-        string hmsg = 6;
+        // default_view_msg is the default display message in view(web/app) when an error occurs.
+        string default_view_msg = 6;
 
         // Extension.
         google.protobuf.Any payload = 5;

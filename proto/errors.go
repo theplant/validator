@@ -16,8 +16,8 @@ func (err *Error) Message() proto.Message {
 		if v.Code == "" {
 			v.Code = f0.Code
 		}
-		if v.Hmsg == "" {
-			v.Hmsg = f0.Hmsg
+		if v.DefaultViewMsg == "" {
+			v.DefaultViewMsg = f0.DefaultViewMsg
 		}
 	}
 
