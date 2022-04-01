@@ -4,7 +4,7 @@ package proto;
 
 import "google/protobuf/any.proto";
 
-option go_package = "./;proto";
+option go_package = "github.com/theplant/validator/proto;proto";
 
 message ValidationError {
     string code = 1;
